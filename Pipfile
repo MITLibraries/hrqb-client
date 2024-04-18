@@ -6,10 +6,12 @@ name = "pypi"
 [packages]
 click = "*"
 sentry-sdk = "*"
+oracledb = "*"
 
 [dev-packages]
 black = "*"
 coveralls = "*"
+ipython = "*"
 mypy = "*"
 pre-commit = "*"
 pytest = "*"
@@ -19,4 +21,4 @@ ruff = "*"
 python_version = "3.11"
 
 [scripts]
-my_app = "python -c \"from my_app.cli import main; main()\""
+hrqb = "python -c \"from hrqb.cli import main; main()\""
