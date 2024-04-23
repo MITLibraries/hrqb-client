@@ -50,3 +50,12 @@ black-apply: # apply changes with 'black'
 
 ruff-apply: # resolve 'fixable errors' with 'ruff'
 	pipenv run ruff check --fix .
+
+## ---- Temporary Development Commands ---- ##
+
+docker-build: # build Docker container
+	docker build --platform linux/amd64 \
+	    -t hrqb-client:latest .
+
+docker-bash: # bash shell to docker container
+	docker run --entrypoint /bin/bash -it hrqb-client
