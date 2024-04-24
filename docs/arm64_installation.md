@@ -158,14 +158,9 @@ First, completely close out the current shell and open a new one in this app pro
 will ensure anything we observe from here on out is not related to the `arch -x86_64 zsh` command
 from the first step.
 
-From a new terminal shell, enter the pipenv virtual environment shell
-```shell
-pipenv shell
-```
-
 Open an Ipython shell
 ```shell
-ipython
+pipenv run ipython
 ```
 
 From Ipython, perform the following to confirm the python virtual environment architecture
@@ -181,4 +176,27 @@ Lastly, we can initialize the Oracle client library and ensure no errors
 import oracledb
 oracledb.init_oracle_client()
 # No output, no errors is what we're looking for!
+```
+
+## Troubleshooting
+
+### Cannot locate `libclntsh.dylib`
+
+If when attempting `oracledb.init_oracle_client()` you are met with the following error:
+
+```text
+DatabaseError: DPI-1047: Cannot locate a 64-bit Oracle Client library: "dlopen(libclntsh.dylib, 0x0001)...
+```
+
+This suggests that the environment variable `DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH` is not set.  Ensure this is present in the 
+`.env` file and/or you are starting the ipython shell with `pipenv run ipython`, where `pipenv run <CMD>` will load values from the `.env`
+file.
+
+An indication this is happening can be found in the ipython output when starting correctly:
+```text
+$ pipenv run ipython
+# Loading .env environment variables...    <----------------------
+# Python 3.11.8 (main, Apr 17 2024, 12:00:35) [Clang 15.0.0 (clang-1500.3.9.4)]
+# Type 'copyright', 'credits' or 'license' for more information
+# IPython 8.23.0 -- An enhanced Interactive Python. Type '?' for help.
 ```
