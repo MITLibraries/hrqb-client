@@ -1,10 +1,19 @@
-# HR Quickbase Client
+# HR Quickbase (HRQB) Client
 
 A python CLI application for managing data in the Library HR [Quickbase](https://www.quickbase.com/) instance.
 
 ## Overview
 
-TODO...
+Library HR uses [Quickbase](https://www.quickbase.com/) to manage and report on employee data.  This application is responsible for 
+extracting data from the Data Warehouse, extracting data from data managed by Library HR, transforming this to a data model pre-established
+in Quickbase, and loading that data.  This CLI application serves as a simple pipeline to perform this work.
+
+This pipeline will be a Python CLI application, with commands applicable to the data loads and management tasks required, that run on a 
+schedule as an ECS container in AWS via EventBridge rules.
+
+See additional diagrams and documentation in the [docs](docs) folder:
+- [Data Sources](docs/data_sources.md)
+- [Pipelines](docs/pipelines.md)
 
 ## Development
 
@@ -28,7 +37,7 @@ WORKSPACE=# Set to `dev` for local development, this will be set to `stage` and 
 ### Optional
 
 ```shell
-DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH # potentially useful when developing on arm64 / rosetta installations
+DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH # used when developing on arm64 architecture + Rosetta2 environment 
 ```
 
 
