@@ -18,12 +18,14 @@ update: install # update Python dependencies
 ## ---- Unit test commands ---- ##
 
 test: # run tests and print a coverage report
-	pipenv run coverage run --source=hrqb -m pytest -vv
+	pipenv run coverage run --source=hrqb -m pytest -vv -m "not integration"
 	pipenv run coverage report -m
 
 coveralls: test # write coverage data to an LCOV report
 	pipenv run coverage lcov -o ./coverage/lcov.info
 
+test-integration:
+	pipenv run pytest -vv -s -m "integration"
 
 ## ---- Code quality and safety commands ---- ##
 
