@@ -18,12 +18,14 @@ update: install # update Python dependencies
 ## ---- Unit test commands ---- ##
 
 test: # run tests and print a coverage report
-	pipenv run coverage run --source=my_app -m pytest -vv
+	pipenv run coverage run --source=hrqb -m pytest -vv -m "not integration"
 	pipenv run coverage report -m
 
 coveralls: test # write coverage data to an LCOV report
 	pipenv run coverage lcov -o ./coverage/lcov.info
 
+test-integration:
+	pipenv run pytest -vv -s -m "integration"
 
 ## ---- Code quality and safety commands ---- ##
 
@@ -50,3 +52,12 @@ black-apply: # apply changes with 'black'
 
 ruff-apply: # resolve 'fixable errors' with 'ruff'
 	pipenv run ruff check --fix .
+
+## ---- Temporary Development Commands ---- ##
+
+docker-build: # build Docker container
+	docker build --platform linux/amd64 \
+	    -t hrqb-client:latest .
+
+docker-bash: # bash shell to docker container
+	docker run --entrypoint /bin/bash -it hrqb-client

@@ -1,4 +1,4 @@
-from my_app.cli import main
+from hrqb.cli import main
 
 
 def test_cli_no_options(caplog, runner):
