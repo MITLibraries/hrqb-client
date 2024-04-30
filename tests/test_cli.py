@@ -1,17 +1,17 @@
 from hrqb.cli import main
 
+OKAY_RESULT_CODE = 0
+MISSING_CLICK_ARG_RESULT_CODE = 2
 
-def test_cli_no_options(caplog, runner):
+
+def test_cli_no_subcommand(runner):
     result = runner.invoke(main)
-    assert result.exit_code == 0
-    assert "Logger 'root' configured with level=INFO" in caplog.text
-    assert "Running process" in caplog.text
-    assert "Total time to complete process" in caplog.text
+    assert result.exit_code == OKAY_RESULT_CODE
 
 
-def test_cli_all_options(caplog, runner):
-    result = runner.invoke(main, ["--verbose"])
-    assert result.exit_code == 0
-    assert "Logger 'root' configured with level=DEBUG" in caplog.text
-    assert "Running process" in caplog.text
-    assert "Total time to complete process" in caplog.text
+def test_cli_verbose_ping(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = ["--verbose", "ping"]
+    result = runner.invoke(main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    assert "pong" in caplog.text

@@ -9,20 +9,30 @@ from hrqb.config import configure_logger, configure_sentry
 logger = logging.getLogger(__name__)
 
 
-@click.command()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option(
-    "-v", "--verbose", is_flag=True, help="Pass to log at debug level instead of info"
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Pass to log at debug level instead of info.",
 )
-def main(*, verbose: bool) -> None:
-    start_time = perf_counter()
+@click.pass_context
+def main(ctx: click.Context, verbose: bool) -> None:  # noqa: FBT001
+    ctx.ensure_object(dict)
+    ctx.obj["START_TIME"] = perf_counter()
     root_logger = logging.getLogger()
     logger.info(configure_logger(root_logger, verbose=verbose))
     logger.info(configure_sentry())
     logger.info("Running process")
 
-    # Do things here!
 
-    elapsed_time = perf_counter() - start_time
+@main.command()
+@click.pass_context
+def ping(ctx: click.Context) -> None:
+    logger.debug("pong")
     logger.info(
-        "Total time to complete process: %s", str(timedelta(seconds=elapsed_time))
+        "Total elapsed: %s",
+        str(
+            timedelta(seconds=perf_counter() - ctx.obj["START_TIME"]),
+        ),
     )
