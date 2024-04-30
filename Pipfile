@@ -8,6 +8,8 @@ click = "*"
 sentry-sdk = "*"
 oracledb = "*"
 luigi = "*"
+pandas = "*"
+pandas-stubs = "*"
 
 [dev-packages]
 black = "*"
