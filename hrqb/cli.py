@@ -4,9 +4,11 @@ from time import perf_counter
 
 import click
 
-from hrqb.config import configure_logger, configure_sentry
+from hrqb.config import Config, configure_logger, configure_sentry
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -23,6 +25,7 @@ def main(ctx: click.Context, verbose: bool) -> None:  # noqa: FBT001
     root_logger = logging.getLogger()
     logger.info(configure_logger(root_logger, verbose=verbose))
     logger.info(configure_sentry())
+    CONFIG.check_required_env_vars()
     logger.info("Running process")
 
 

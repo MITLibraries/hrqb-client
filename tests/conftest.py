@@ -6,6 +6,7 @@ from click.testing import CliRunner
 def _test_env(monkeypatch):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
+    monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
 
 
 @pytest.fixture
