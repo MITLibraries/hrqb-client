@@ -3,7 +3,7 @@
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
-from hrqb.base.target import PandasPickleTarget, QuickbaseTableTarget
+from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.utils import today_date
 
 
@@ -16,7 +16,7 @@ class HRQBTask(luigi.Task):
     @property
     def single_input(self) -> PandasPickleTarget | QuickbaseTableTarget:
         input_count = len(self.input())
-        if input_count > 1:
+        if input_count != 1:
             message = f"Expected a single input to this Task but found: {input_count}"
             raise ValueError(message)
         return self.input()[0]
@@ -26,7 +26,7 @@ class HRQBTask(luigi.Task):
         input_object = self.single_input
         data_object = input_object.read()
         if not isinstance(data_object, pd.DataFrame):
-            message = f"Expected pandas Dataframe got: {type(data_object)}"
+            message = f"Expected pandas Dataframe but got: {type(data_object)}"
             raise TypeError(message)
         return data_object
 
@@ -35,7 +35,7 @@ class HRQBTask(luigi.Task):
         input_object = self.single_input
         data_object = input_object.read()
         if not isinstance(data_object, pd.Series):
-            message = f"Expected pandas Series got: {type(data_object)}"
+            message = f"Expected pandas Series but got: {type(data_object)}"
             raise TypeError(message)
         return data_object
 
@@ -53,7 +53,7 @@ class PandasPickleTask(HRQBTask):
         return self.target()
 
 
-class QuickbaseTableUpsert(HRQBTask):
+class QuickbaseUpsertTask(HRQBTask):
     """Base Task class for Tasks that upsert data to Quickbase tables."""
 
     def target(self) -> QuickbaseTableTarget:
