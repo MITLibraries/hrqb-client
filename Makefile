@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
+export LUIGI_CONFIG_PATH=hrqb/luigi.cfg
 
 help: # preview Makefile commands
 	@awk 'BEGIN { FS = ":.*#"; print "Usage:  make <target>\n\nTargets:" } \
