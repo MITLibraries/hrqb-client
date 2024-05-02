@@ -34,6 +34,7 @@ SENTRY_DSN=# If set to a valid Sentry DSN, enables Sentry exception monitoring. 
 WORKSPACE=# Set to `dev` for local development, this will be set to `stage` and `prod` in those environments by Terraform.
 LUIGI_CONFIG_PATH=hrqb/luigi.cfg # this env var must be set, pointing to config file in hrqb folder
 QUICKBASE_API_TOKEN=# Quickbase API token
+QUICKBASE_APP_ID=# Quickbase App ID
 ```
 
 ### Optional
