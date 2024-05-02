@@ -1,0 +1,39 @@
+{
+  "data": [
+    {
+      "1": {
+        "value": "Green"
+      },
+      "2": {
+        "value": 42
+      }
+    },
+    {
+      "1": {
+        "value": "Red"
+      },
+      "2": {
+        "value": 101
+      }
+    },
+    {
+      "1": {
+        "value": "Blue"
+      },
+      "2": {
+        "value": 999
+      }
+    }
+  ],
+  "metadata": {
+    "createdRecordIds": [
+      11,
+      12
+    ],
+    "totalNumberOfRecordsProcessed": 3,
+    "unchangedRecordIds": [],
+    "updatedRecordIds": [
+      1
+    ]
+  }
+}

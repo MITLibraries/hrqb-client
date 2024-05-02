@@ -10,6 +10,8 @@ class Config:
         "WORKSPACE",
         "SENTRY_DSN",
         "LUIGI_CONFIG_PATH",
+        "QUICKBASE_API_TOKEN",
+        "QUICKBASE_APP_ID",
     )
     OPTIONAL_ENV_VARS = ("DYLD_LIBRARY_PATH",)
 

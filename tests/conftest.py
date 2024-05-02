@@ -1,8 +1,15 @@
+# ruff: noqa: N802, N803
+
+import json
+
 import pandas as pd
 import pytest
+import requests_mock
 from click.testing import CliRunner
 
-from hrqb.base.task import PandasPickleTask, QuickbaseUpsertTask
+from hrqb.base import QuickbaseTableTarget
+from hrqb.base.task import PandasPickleTarget, PandasPickleTask, QuickbaseUpsertTask
+from hrqb.utils.quickbase import QBClient
 
 
 @pytest.fixture(autouse=True)
@@ -10,6 +17,8 @@ def _test_env(monkeypatch):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
+    monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
+    monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
 
 
 @pytest.fixture
@@ -118,3 +127,102 @@ def second_task_with_complete_parent_series_task(
             return [complete_first_pandas_series_task]
 
     return SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
+
+
+@pytest.fixture
+def qbclient():
+    return QBClient()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def global_requests_mock():
+    with requests_mock.Mocker() as m:
+        yield m
+
+
+@pytest.fixture
+def mocked_qb_api_getApp(qbclient, global_requests_mock):
+    url = f"{qbclient.api_base}/apps/{qbclient.app_id}"
+    with open("tests/fixtures/qb_api_responses/getApp.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.get(url, json=api_response)
+    return api_response
+
+
+@pytest.fixture
+def mocked_qb_api_getAppTables(qbclient, global_requests_mock):
+    url = f"{qbclient.api_base}/tables?appId={qbclient.app_id}"
+    with open("tests/fixtures/qb_api_responses/getAppTables.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.get(url, json=api_response)
+    return api_response
+
+
+@pytest.fixture
+def mocked_table_id():
+    return "bpqe82s1"
+
+
+@pytest.fixture
+def mocked_table_name():
+    return "Example Table #0"
+
+
+@pytest.fixture
+def mocked_qb_api_getFields(qbclient, mocked_table_id, global_requests_mock):
+    url = f"{qbclient.api_base}/fields?tableId={mocked_table_id}"
+    with open("tests/fixtures/qb_api_responses/getFields.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.get(url, json=api_response)
+    return api_response
+
+
+@pytest.fixture
+def mocked_upsert_data():
+    return [
+        {"Field1": "Green", "Numeric Field": 42},
+        {"Field1": "Red", "Numeric Field": 101},
+        {"Field1": "Blue", "Numeric Field": 999},
+    ]
+
+
+@pytest.fixture
+def mocked_upsert_payload(
+    qbclient, mocked_table_id, mocked_upsert_data, mocked_qb_api_getFields
+):
+    return qbclient.prepare_upsert_payload(mocked_table_id, mocked_upsert_data, None)
+
+
+@pytest.fixture
+def mocked_qb_api_upsert(
+    qbclient, mocked_table_id, mocked_upsert_payload, global_requests_mock
+):
+    url = f"{qbclient.api_base}/records"
+    with open("tests/fixtures/qb_api_responses/upsert.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "POST",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_upsert_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
+def mocked_transform_pandas_target(tmpdir, mocked_table_name, mocked_upsert_data):
+    target = PandasPickleTarget(
+        path=f"{tmpdir}/transform__example_table_0.pickle", table_name=mocked_table_name
+    )
+    target.write(pd.DataFrame(mocked_upsert_data))
+    return target
+
+
+@pytest.fixture
+def quickbase_load_task_with_parent_data(mocked_transform_pandas_target):
+    class LoadTaskWithData(QuickbaseUpsertTask):
+        @property
+        def single_input(self) -> PandasPickleTarget | QuickbaseTableTarget:
+            return mocked_transform_pandas_target
+
+    return LoadTaskWithData

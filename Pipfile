@@ -10,6 +10,9 @@ oracledb = "*"
 luigi = "*"
 pandas = "*"
 pandas-stubs = "*"
+attrs = "*"
+requests = "*"
+types-requests = "*"
 
 [dev-packages]
 black = "*"
@@ -19,6 +22,7 @@ mypy = "*"
 pre-commit = "*"
 pytest = "*"
 ruff = "*"
+requests-mock = "*"
 
 [requires]
 python_version = "3.11"
