@@ -87,11 +87,11 @@ class QBClient:
         fields = self.make_request(requests.get, f"fields?tableId={table_id}")
         return pd.DataFrame(fields)
 
-    def get_table_fields_name_to_id(self, table_id: str) -> dict:
-        """Get Field name-to-id map for a Table.
+    def get_table_fields_label_to_id(self, table_id: str) -> dict:
+        """Get Field label-to-id map for a Table.
 
         This method is particularly helpful for upserting data via the QB API, where
-        Field IDs are required instead of Field names.
+        Field IDs are required instead of Field labels.
         """
         fields_df = self.get_table_fields(table_id)
         return {f["label"]: f["id"] for _, f in fields_df.iterrows()}
@@ -114,21 +114,21 @@ class QBClient:
         https://developer.quickbase.com/operation/upsert
 
         This method expects a list of dictionaries, one dictionary per record, with a
-        {Field Name:Value} structure.  This method will first retrieve a mapping of
-        Field name-to-ID, then remap the data to a {Field ID:Value} structure.
+        {Field Label:Value} structure.  This method will first retrieve a mapping of
+        Field label-to-ID mapping, then remap the data to a {Field ID:Value} structure.
 
         Then, return a dictionary payload suitable for the QB upsert API call.
         """
-        field_map = self.get_table_fields_name_to_id(table_id)
+        field_map = self.get_table_fields_label_to_id(table_id)
         mapped_records = []
         for record in records:
             mapped_record = {}
-            for field_name, field_value in record.items():
-                if field_id := field_map.get(field_name):
+            for field_label, field_value in record.items():
+                if field_id := field_map.get(field_label):
                     mapped_record[str(field_id)] = {"value": field_value}
                 else:
                     message = (
-                        f"Field name '{field_name}' not found for Table ID '{table_id}'"
+                        f"Field label '{field_label}' not found for Table ID '{table_id}'"
                     )
                     raise QBFieldNotFoundError(message)
             mapped_records.append(mapped_record)

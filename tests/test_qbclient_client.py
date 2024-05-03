@@ -55,7 +55,7 @@ def test_qbclient_get_table_fields_name_to_id(
     mocked_table_id,
     mocked_qb_api_getFields,
 ):
-    field_name_to_ids = qbclient.get_table_fields_name_to_id(mocked_table_id)
+    field_name_to_ids = qbclient.get_table_fields_label_to_id(mocked_table_id)
     assert field_name_to_ids["Field1"] == 1
     assert field_name_to_ids["Numeric Field"] == 2
 
@@ -88,7 +88,7 @@ def test_qbclient_upsert_records_bad_field_name_error(
         {"Field1": "Blue", "Numeric Field": 999},
         {"Field1": "Blue", "Numeric Field": 999, "IAmBadField": "I will error."},
     ]
-    with pytest.raises(QBFieldNotFoundError, match="Field name 'IAmBadField' not found"):
+    with pytest.raises(QBFieldNotFoundError, match="Field label 'IAmBadField' not found"):
         qbclient.prepare_upsert_payload(mocked_table_id, records, merge_field=None)
 
 
