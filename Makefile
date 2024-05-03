@@ -1,5 +1,6 @@
 SHELL=/bin/bash
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
+export LUIGI_CONFIG_PATH=hrqb/luigi.cfg
 
 help: # preview Makefile commands
 	@awk 'BEGIN { FS = ":.*#"; print "Usage:  make <target>\n\nTargets:" } \
@@ -44,8 +45,7 @@ safety: # check for security vulnerabilities and verify Pipfile.lock is up-to-da
 	pipenv check
 	pipenv verify
 
-lint-apply: # apply changes with 'black' and resolve 'fixable errors' with 'ruff'
-	black-apply ruff-apply 
+lint-apply: black-apply ruff-apply  # apply changes with 'black' and resolve 'fixable errors' with 'ruff'
 
 black-apply: # apply changes with 'black'
 	pipenv run black .
