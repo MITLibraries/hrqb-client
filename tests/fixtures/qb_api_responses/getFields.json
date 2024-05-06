@@ -1,0 +1,81 @@
+[
+  {
+    "id": 1,
+    "label": "Field1",
+    "fieldType": "text",
+    "noWrap": false,
+    "bold": false,
+    "required": false,
+    "appearsByDefault": false,
+    "findEnabled": false,
+    "unique": false,
+    "doesDataCopy": false,
+    "fieldHelp": "field help",
+    "audited": false,
+    "properties": {
+      "primaryKey": false,
+      "foreignKey": false,
+      "numLines": 1,
+      "maxLength": 0,
+      "appendOnly": false,
+      "allowHTML": false,
+      "sortAsGiven": false,
+      "carryChoices": true,
+      "allowNewChoices": false,
+      "formula": "",
+      "defaultValue": ""
+    },
+    "permissions": [
+      {
+        "permissionType": "View",
+        "role": "Viewer",
+        "roleId": 10
+      },
+      {
+        "permissionType": "None",
+        "role": "Participant",
+        "roleId": 11
+      },
+      {
+        "permissionType": "Modify",
+        "role": "Administrator",
+        "roleId": 12
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "label": "Numeric Field",
+    "fieldType": "numeric",
+    "appearsByDefault": true,
+    "audited": false,
+    "bold": false,
+    "fieldHelp": "This is a numeric field",
+    "findEnabled": false,
+    "addToForms": true,
+    "properties": {
+      "numberFormat": 3,
+      "decimalPlaces": 2,
+      "doesAverage": true,
+      "doesTotal": true,
+      "blankIsZero": true
+    },
+    "permissions": [
+      {
+        "role": "Viewer",
+        "permissionType": "View",
+        "roleId": 10
+      },
+      {
+        "role": "Participant",
+        "permissionType": "Modify",
+        "roleId": 11
+      },
+      {
+        "role": "Administrator",
+        "permissionType": "Modify",
+        "roleId": 12
+      }
+    ]
+  }
+]
