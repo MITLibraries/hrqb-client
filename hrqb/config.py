@@ -13,7 +13,10 @@ class Config:
         "QUICKBASE_API_TOKEN",
         "QUICKBASE_APP_ID",
     )
-    OPTIONAL_ENV_VARS = ("DYLD_LIBRARY_PATH",)
+    OPTIONAL_ENV_VARS = (
+        "DYLD_LIBRARY_PATH",
+        "TARGETS_DIRECTORY",
+    )
 
     def check_required_env_vars(self) -> None:
         """Method to raise exception if required env vars not set."""
@@ -28,6 +31,10 @@ class Config:
             return os.getenv(name)
         message = f"'{name}' not a valid configuration variable"
         raise AttributeError(message)
+
+    def targets_directory(self) -> str:
+        directory = self.TARGETS_DIRECTORY or "output"
+        return directory.removesuffix("/")
 
 
 def configure_logger(logger: logging.Logger, *, verbose: bool) -> str:

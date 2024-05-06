@@ -1,6 +1,7 @@
 # ruff: noqa: N802, N803
 
 import json
+import shutil
 
 import pandas as pd
 import pytest
@@ -8,17 +9,22 @@ import requests_mock
 from click.testing import CliRunner
 
 from hrqb.base import QuickbaseTableTarget
-from hrqb.base.task import PandasPickleTarget, PandasPickleTask, QuickbaseUpsertTask
+from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.utils.quickbase import QBClient
+from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
+from tests.fixtures.tasks.load import LoadAnimals
+from tests.fixtures.tasks.pipelines import Animals
+from tests.fixtures.tasks.transform import PrepareAnimals
 
 
 @pytest.fixture(autouse=True)
-def _test_env(monkeypatch):
+def _test_env(monkeypatch, targets_directory):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
     monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
     monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
+    monkeypatch.setenv("TARGETS_DIRECTORY", str(targets_directory))
 
 
 @pytest.fixture
@@ -26,9 +32,9 @@ def runner():
     return CliRunner()
 
 
-@pytest.fixture(scope="session")
-def session_temp_dir(tmp_path_factory):
-    return tmp_path_factory.mktemp("shared_temp_dir")
+@pytest.fixture
+def targets_directory(tmp_path_factory):
+    return tmp_path_factory.mktemp("targets")
 
 
 @pytest.fixture
@@ -75,58 +81,69 @@ def quickbase_api_write_receipt():
 
 
 @pytest.fixture
-def pandas_pickle_task(tmpdir):
-    filepath = f"{tmpdir}/foo.pickle"
-    return PandasPickleTask(path=filepath, table_name="Foo")
+def pipeline_name():
+    return "Animals"
 
 
 @pytest.fixture
-def quickbase_upsert_task(tmpdir):
-    filepath = f"{tmpdir}/foo.json"
-    return QuickbaseUpsertTask(path=filepath, table_name="Foo")
+def task_extract_animal_names(pipeline_name):
+    return ExtractAnimalNames(pipeline=pipeline_name)
 
 
 @pytest.fixture
-def complete_first_pandas_dataframe_task(
-    tmpdir, pandas_pickle_task, simple_pandas_dataframe
-):
-    pandas_pickle_task.target().write(simple_pandas_dataframe)
-    assert pandas_pickle_task.complete()
-    return pandas_pickle_task
+def task_extract_animal_colors(pipeline_name):
+    return ExtractAnimalColors(pipeline=pipeline_name)
 
 
 @pytest.fixture
-def complete_first_pandas_series_task(tmpdir, pandas_pickle_task, simple_pandas_series):
-    pandas_pickle_task.target().write(simple_pandas_series)
-    assert pandas_pickle_task.complete()
-    return pandas_pickle_task
+def task_transform_animals(pipeline_name):
+    return PrepareAnimals(pipeline=pipeline_name)
 
 
 @pytest.fixture
-def incomplete_first_pandas_task(tmpdir, pandas_pickle_task):
-    return pandas_pickle_task
+def task_load_animals(pipeline_name):
+    return LoadAnimals(pipeline=pipeline_name)
 
 
 @pytest.fixture
-def second_task_with_complete_parent_dataframe_task(
-    tmpdir, complete_first_pandas_dataframe_task
-):
-    class SecondTask(PandasPickleTask):
-        def requires(self):
-            return [complete_first_pandas_dataframe_task]
-
-    return SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
+def task_pipeline_animals(pipeline_name):
+    return Animals()
 
 
 @pytest.fixture
-def second_task_with_complete_parent_series_task(
-    tmpdir, complete_first_pandas_series_task
-):
-    class SecondTask(PandasPickleTask):
-        def requires(self):
-            return [complete_first_pandas_series_task]
+def task_extract_animal_names_target(targets_directory, task_extract_animal_names):
+    shutil.copy(
+        "tests/fixtures/targets/Animals__Extract__ExtractAnimalNames.pickle",
+        task_extract_animal_names.path,
+    )
+    return task_extract_animal_names.target()
 
-    return SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
+
+@pytest.fixture
+def task_extract_animal_colors_target(targets_directory, task_extract_animal_colors):
+    shutil.copy(
+        "tests/fixtures/targets/Animals__Extract__ExtractAnimalColors.pickle",
+        task_extract_animal_colors.path,
+    )
+    return task_extract_animal_colors.target()
+
+
+@pytest.fixture
+def task_transform_animals_target(targets_directory, task_transform_animals):
+    shutil.copy(
+        "tests/fixtures/targets/Animals__Transform__PrepareAnimals.pickle",
+        task_transform_animals.path,
+    )
+    return task_transform_animals.target()
+
+
+@pytest.fixture
+def task_load_animals_target(targets_directory, task_load_animals):
+    shutil.copy(
+        "tests/fixtures/targets/Animals__Load__LoadAnimals.json",
+        task_load_animals.path,
+    )
+    return task_load_animals.target()
 
 
 @pytest.fixture

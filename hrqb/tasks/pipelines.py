@@ -1,4 +1,4 @@
-"""hrqb.pipelines"""
+"""hrqb.tasks.pipelines"""
 
 import luigi  # type: ignore[import-untyped]
 from luigi.execution_summary import LuigiRunResult  # type: ignore[import-untyped]
@@ -10,6 +10,3 @@ def run_pipeline(pipeline_task: luigi.WrapperTask) -> LuigiRunResult:
         local_scheduler=True,
         detailed_summary=True,
     )
-
-
-# TODO: add wrapper Pipeline tasks in this file # noqa: TD002, TD003, FIX002
