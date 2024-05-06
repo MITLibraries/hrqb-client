@@ -60,6 +60,14 @@ def test_qbclient_get_table_fields_name_to_id(
     assert field_name_to_ids["Numeric Field"] == 2
 
 
+def test_qbclient_convert_record_field_labels_to_ids(qbclient):
+    records = [{"record_id": 42, "note": "Hello World"}]
+    field_map = {"record_id": "RecordId", "note": "Message"}
+    assert qbclient.map_and_format_records_for_upsert(field_map, records) == [
+        {"RecordId": {"value": 42}, "Message": {"value": "Hello World"}}
+    ]
+
+
 def test_qbclient_prepare_upsert_payload(
     qbclient, mocked_table_id, mocked_upsert_data, mocked_upsert_payload
 ):

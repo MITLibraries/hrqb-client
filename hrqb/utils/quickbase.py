@@ -39,7 +39,8 @@ class QBClient:
         """Make an API request to Quickbase API.
 
         This method caches request responses, such that data from informational requests
-        may be reused in later operations.
+        may be reused in later operations.  Cached responses only persist for the life
+        of the instantiated QBClient object.
         """
         # hash the request to cache the response
         request_hash = (path, json.dumps(kwargs, sort_keys=True))
@@ -115,23 +116,13 @@ class QBClient:
 
         This method expects a list of dictionaries, one dictionary per record, with a
         {Field Label:Value} structure.  This method will first retrieve a mapping of
-        Field label-to-ID mapping, then remap the data to a {Field ID:Value} structure.
+        Field label-to-ID mapping, then remap the data to a {Field ID:{value:Value}}
+        structure.
 
         Then, return a dictionary payload suitable for the QB upsert API call.
         """
         field_map = self.get_table_fields_label_to_id(table_id)
-        mapped_records = []
-        for record in records:
-            mapped_record = {}
-            for field_label, field_value in record.items():
-                if field_id := field_map.get(field_label):
-                    mapped_record[str(field_id)] = {"value": field_value}
-                else:
-                    message = (
-                        f"Field label '{field_label}' not found for Table ID '{table_id}'"
-                    )
-                    raise QBFieldNotFoundError(message)
-            mapped_records.append(mapped_record)
+        mapped_records = self.map_and_format_records_for_upsert(field_map, records)
 
         upsert_payload = {
             "to": table_id,
@@ -142,3 +133,21 @@ class QBClient:
             upsert_payload["mergeFieldId"] = field_map[merge_field]
 
         return upsert_payload
+
+    def map_and_format_records_for_upsert(
+        self,
+        field_map: dict,
+        records: list[dict],
+    ) -> list[dict]:
+        """Format list of {Field Label:Value} records into {Field ID:{value:Value}}."""
+        mapped_records = []
+        for record in records:
+            mapped_record = {}
+            for field_label, field_value in record.items():
+                if field_id := field_map.get(field_label):
+                    mapped_record[str(field_id)] = {"value": field_value}
+                else:
+                    message = f"Field label '{field_label}' not found in Field mappings."
+                    raise QBFieldNotFoundError(message)
+            mapped_records.append(mapped_record)
+        return mapped_records
