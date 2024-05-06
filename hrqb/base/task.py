@@ -1,9 +1,14 @@
 """hrqb.base.task"""
 
+import os
+from abc import abstractmethod
+from typing import Literal
+
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
+from hrqb.config import Config
 from hrqb.utils import today_date
 from hrqb.utils.quickbase import QBClient
 
@@ -11,11 +16,38 @@ from hrqb.utils.quickbase import QBClient
 class HRQBTask(luigi.Task):
     """Base Task class for all HRQB Tasks."""
 
-    path = luigi.Parameter()
-    table_name = luigi.Parameter()
+    pipeline = luigi.Parameter()
+    stage: Literal["Extract", "Transform", "Load"] = luigi.Parameter()
+    table_name = luigi.OptionalStrParameter(default=None)
+
+    @property
+    def path(self) -> str:
+        """Dynamically generate path for HRQBTask Targets.
+
+        The pattern is:
+            Targets Dir + Pipeline Name + Pipeline Stage + Task Name + File Extension
+
+        Examples:
+            output/LookupTablesPipeline__extract__JobData.pickle
+            output/LookupTablesPipeline__transform__UniqueJobTitles.pickle
+            output/LookupTablesPipeline__load__UpsertJobTitles.pickle
+        """
+        filename = (
+            "__".join(  # noqa: FLY002
+                [self.pipeline, self.stage, self.__class__.__name__]
+            )
+            + self.filename_extension
+        )
+        return os.path.join(Config().targets_directory(), filename)
+
+    @property
+    @abstractmethod
+    def filename_extension(self) -> str:
+        pass  # pragma: nocover
 
     @property
     def single_input(self) -> PandasPickleTarget | QuickbaseTableTarget:
+        """Return single parent Task Target, raise error if multiple parent Tasks."""
         input_count = len(self.input())
         if input_count != 1:
             message = f"Expected a single input to this Task but found: {input_count}"
@@ -23,26 +55,33 @@ class HRQBTask(luigi.Task):
         return self.input()[0]
 
     @property
-    def input_pandas_dataframe(self) -> pd.DataFrame:
-        input_object = self.single_input
-        data_object = input_object.read()
-        if not isinstance(data_object, pd.DataFrame):
-            message = f"Expected pandas Dataframe but got: {type(data_object)}"
+    def single_input_dataframe(self) -> pd.DataFrame:
+        """Convenience method to read Dataframe from single PandasPickleTarget input."""
+        target = self.single_input
+        if not isinstance(target, PandasPickleTarget):  # pragma: nocover
+            message = f"Expected PandasPickleTarget input but got {type(target)}."
             raise TypeError(message)
-        return data_object
+        return target.read()  # type: ignore[return-value]
 
     @property
-    def input_pandas_series(self) -> pd.Series:
-        input_object = self.single_input
-        data_object = input_object.read()
-        if not isinstance(data_object, pd.Series):
-            message = f"Expected pandas Series but got: {type(data_object)}"
-            raise TypeError(message)
-        return data_object
+    def named_inputs(self) -> dict[str, PandasPickleTarget | QuickbaseTableTarget]:
+        """Dictionary of parent Tasks and their Targets.
+
+        This is useful when a Task has multiple parent Tasks, to easily and precisely
+        access a specific parent Task's output.
+        """
+        return {
+            task.__class__.__name__: target
+            for task, target in list(zip(self.deps(), self.input(), strict=True))
+        }
 
 
 class PandasPickleTask(HRQBTask):
     """Base Task class for Tasks that write pickled pandas objects."""
+
+    @property
+    def filename_extension(self) -> str:
+        return ".pickle"
 
     def target(self) -> PandasPickleTarget:
         return PandasPickleTarget(
@@ -50,12 +89,16 @@ class PandasPickleTask(HRQBTask):
             table_name=self.table_name,
         )
 
-    def output(self) -> PandasPickleTarget:
+    def output(self) -> PandasPickleTarget:  # pragma: no cover
         return self.target()
 
 
 class QuickbaseUpsertTask(HRQBTask):
     """Base Task class for Tasks that upsert data to Quickbase tables."""
+
+    @property
+    def filename_extension(self) -> str:
+        return ".json"
 
     def target(self) -> QuickbaseTableTarget:
         return QuickbaseTableTarget(
@@ -63,7 +106,7 @@ class QuickbaseUpsertTask(HRQBTask):
             table_name=self.table_name,
         )
 
-    def output(self) -> QuickbaseTableTarget:
+    def output(self) -> QuickbaseTableTarget:  # pragma: no cover
         return self.target()
 
     def get_records(self) -> list[dict]:
@@ -72,7 +115,7 @@ class QuickbaseUpsertTask(HRQBTask):
         This method may be overridden if necessary if a load Task requires more complex
         behavior than a straight conversion of the parent's DataFrame to a dictionary.
         """
-        return self.input_pandas_dataframe.to_dict(orient="records")
+        return self.single_input_dataframe.to_dict(orient="records")
 
     def run(self) -> None:
         """Retrieve data from parent Task and upsert to Quickbase table.
