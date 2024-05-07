@@ -13,7 +13,7 @@ from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.utils.quickbase import QBClient
 from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
 from tests.fixtures.tasks.load import LoadAnimals
-from tests.fixtures.tasks.pipelines import Animals
+from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
 from tests.fixtures.tasks.transform import PrepareAnimals
 
 
@@ -108,6 +108,11 @@ def task_load_animals(pipeline_name):
 @pytest.fixture
 def task_pipeline_animals(pipeline_name):
     return Animals()
+
+
+@pytest.fixture
+def task_pipeline_animals_debug(pipeline_name):
+    return AnimalsDebug()
 
 
 @pytest.fixture

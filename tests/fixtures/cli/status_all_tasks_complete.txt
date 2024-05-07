@@ -1,0 +1,5 @@
+├── COMPLETE: AnimalsDebug()
+   ├── COMPLETE: LoadAnimalsDebug(pipeline=AnimalsDebug, stage=Load, table_name=Animals)
+      ├── COMPLETE: PrepareAnimals(pipeline=AnimalsDebug, stage=Transform, table_name=Animals)
+         ├── COMPLETE: ExtractAnimalColors(table_name=, pipeline=AnimalsDebug, stage=Extract)
+         ├── COMPLETE: ExtractAnimalNames(table_name=, pipeline=AnimalsDebug, stage=Extract)

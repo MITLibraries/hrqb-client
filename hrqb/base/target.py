@@ -6,8 +6,6 @@ import luigi  # type: ignore[import-untyped]
 import pandas as pd
 from luigi.format import MixedUnicodeBytes  # type: ignore[import-untyped]
 
-PandasObject = pd.DataFrame | pd.Series
-
 
 class HRQBLocalTarget(luigi.LocalTarget):
     """Target is local file with path and table name init."""
