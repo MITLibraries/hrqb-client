@@ -31,6 +31,10 @@ class HRQBTask(luigi.Task):
             output/LookupTablesPipeline__extract__JobData.pickle
             output/LookupTablesPipeline__transform__UniqueJobTitles.pickle
             output/LookupTablesPipeline__load__UpsertJobTitles.pickle
+
+        A double underscore '__' is used to join these components together to allow
+        splitting on the filename if needed, where a single component may (though not
+        likely) contain a single underscore.
         """
         filename = (
             "__".join(  # noqa: FLY002
@@ -47,7 +51,14 @@ class HRQBTask(luigi.Task):
 
     @property
     def single_input(self) -> PandasPickleTarget | QuickbaseTableTarget:
-        """Return single parent Task Target, raise error if multiple parent Tasks."""
+        """Return single parent Task Target, raise error if multiple parent Tasks.
+
+        When used, this convenience method also helps reason about Tasks.  Quite often, a
+        Task is only expecting a single parent Task that will feed it data.  In these
+        scenarios, using self.single_input is not only convenient, but also codifies in
+        code this assumption.  If this Task were to receive multiple inputs in the future
+        this method would then throw an error.
+        """
         input_count = len(self.input())
         if input_count != 1:
             message = f"Expected a single input to this Task but found: {input_count}"
