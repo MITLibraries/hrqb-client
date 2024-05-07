@@ -15,8 +15,7 @@ class PrepareAnimals(PandasPickleTask):
             ExtractAnimalNames(pipeline=self.pipeline),
         ]
 
-    def run(self):
+    def get_dataframe(self):
         colors_df = self.named_inputs["ExtractAnimalColors"].read()
         names_df = self.named_inputs["ExtractAnimalNames"].read()
-        animals_df = names_df.merge(colors_df, how="left", on="animal_id")
-        self.target().write(animals_df)
+        return names_df.merge(colors_df, how="left", on="animal_id")

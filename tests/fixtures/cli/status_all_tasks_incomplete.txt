@@ -1,0 +1,5 @@
+├── INCOMPLETE: Animals()
+   ├── INCOMPLETE: LoadAnimals(pipeline=Animals, stage=Load, table_name=Animals)
+      ├── INCOMPLETE: PrepareAnimals(pipeline=Animals, stage=Transform, table_name=Animals)
+         ├── INCOMPLETE: ExtractAnimalColors(table_name=, pipeline=Animals, stage=Extract)
+         ├── INCOMPLETE: ExtractAnimalNames(table_name=, pipeline=Animals, stage=Extract)

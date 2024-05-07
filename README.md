@@ -40,9 +40,80 @@ QUICKBASE_APP_ID=# Quickbase App ID
 ### Optional
 
 ```shell
-DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH # used when developing on arm64 architecture + Rosetta2 environment 
+DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH # used when developing on arm64 architecture + Rosetta2 environment
+TARGETS_DIRECTORY=#Location to store Task Targets, overriding application default of "output" 
 ```
 
+## CLI Commands
+
+### `ping`
+```text
+Usage: ping [OPTIONS]
+
+  Debug command to test application initializes okay.
+
+Options:
+  --help  Show this message and exit.
+```
+<br>
 
 
+### `pipeline` [Command Group]
+
+```text
+Usage: -c pipeline [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -p, --pipeline TEXT          Pipeline Task class name imported from
+                               configured pipeline module, e.g. 'MyPipeline'
+                               [required]
+  -pm, --pipeline-module TEXT  Module where Pipeline Task class is defined.
+                               Default: 'hrqb.tasks.pipelines'.
+  --pipeline-parameters TEXT   Comma separated list luigi Parameters to pass
+                               to HRQBPipelineTask, e.g.
+                               'Param1=foo,Param2=bar'.
+  -h, --help                   Show this message and exit.
+
+Commands:
+  remove-data
+  run
+  status
+```
+<br>
+
+
+### `pipeline status`
+```text
+Usage: status [OPTIONS]
+
+  Return the status of a Pipeline.
+
+Options:
+  --help  Show this message and exit.
+```
+<br>
+
+
+### `pipeline remove-data`
+```text
+Usage: remove-data [OPTIONS]
+
+  Remove all Task output data (Targets) for a pipeline.
+
+Options:
+  --help  Show this message and exit.
+```
+<br>
+
+
+### `pipeline run`
+```text
+Usage: run [OPTIONS]
+
+  Run a Pipeline.
+
+Options:
+  --remove-data  Pass to automatically removed Task artifacts after run.
+  --help         Show this message and exit.
+```
 
