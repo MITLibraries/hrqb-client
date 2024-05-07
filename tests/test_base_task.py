@@ -1,103 +1,152 @@
+# ruff: noqa: PLR2004
+
+import os
+from unittest import mock
+
+import luigi
 import pandas as pd
 import pytest
 
-from hrqb.base import PandasPickleTarget, PandasPickleTask, QuickbaseTableTarget
+from hrqb.base import HRQBTask, PandasPickleTarget, QuickbaseTableTarget
+from hrqb.config import Config
 
 
-def test_pandas_pickle_task_gives_pandas_pickle_target(pandas_pickle_task):
-    target = pandas_pickle_task.target()
-    assert isinstance(target, PandasPickleTarget)
-    assert target.path == pandas_pickle_task.path
-    assert target.table_name == pandas_pickle_task.table_name
+def test_base_task_required_parameter_pipeline(pipeline_name):
+    with pytest.raises(
+        luigi.parameter.MissingParameterException,
+        match="requires the 'pipeline' parameter to be set",
+    ):
+        HRQBTask()
 
 
-def test_pandas_pickle_task_output_path_is_target_path(pandas_pickle_task):
-    assert pandas_pickle_task.output().path == pandas_pickle_task.target().path
+def test_base_task_required_parameter_stage(pipeline_name):
+    with pytest.raises(
+        luigi.parameter.MissingParameterException,
+        match="requires the 'stage' parameter to be set",
+    ):
+        HRQBTask(pipeline=pipeline_name)
 
 
-def test_quickbase_upsert_task_gives_quickbase_table_target(quickbase_upsert_task):
-    target = quickbase_upsert_task.target()
-    assert isinstance(target, QuickbaseTableTarget)
-    assert target.path == quickbase_upsert_task.path
-    assert target.table_name == quickbase_upsert_task.table_name
+def test_base_task_requires_filename_extension_property(pipeline_name):
+    with pytest.raises(
+        TypeError,
+        match="abstract method filename_extension",
+    ):
+        HRQBTask(pipeline=pipeline_name, stage="Extract")
 
 
-def test_quickbase_upsert_task_output_path_is_target_path(quickbase_upsert_task):
-    assert quickbase_upsert_task.output().path == quickbase_upsert_task.target().path
+def test_base_task_generic_valid_init(pipeline_name):
+    class GenericTask(HRQBTask):
+        def filename_extension(self):
+            return ".csv"
+
+    GenericTask(pipeline=pipeline_name, stage="Extract")
 
 
-def test_luigi_task_incomplete_when_target_not_exists(tmpdir, pandas_pickle_task):
-    assert not pandas_pickle_task.complete()
-
-
-def test_luigi_task_complete_when_target_exists(tmpdir, pandas_pickle_task):
-    with open(pandas_pickle_task.path, "a"):
-        assert pandas_pickle_task.complete()
-
-
-def test_hrqb_task_get_single_input_from_complete_parent_task_success(
-    tmpdir,
-    complete_first_pandas_dataframe_task,
-):
-    class SecondTask(PandasPickleTask):
-        def requires(self):
-            return [complete_first_pandas_dataframe_task]
-
-    task = SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
-    assert task.single_input.exists()
-    task_input_dataframe = task.single_input.read()
-    parent_task_output_dataframe = complete_first_pandas_dataframe_task.target().read()
-    assert task_input_dataframe.equals(parent_task_output_dataframe)
-
-
-def test_hrqb_task_get_single_input_from_incomplete_parent_task_not_exists(
-    tmpdir,
-    incomplete_first_pandas_task,
-):
-    class SecondTask(PandasPickleTask):
-        def requires(self):
-            return [incomplete_first_pandas_task]
-
-    task = SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
-    assert not task.single_input.exists()
-
-
-def test_hrqb_task_get_parent_task_target_dataframe(
-    second_task_with_complete_parent_dataframe_task,
-):
-    assert isinstance(
-        second_task_with_complete_parent_dataframe_task.input_pandas_dataframe,
-        pd.DataFrame,
+def test_task_dynamic_path_from_parameters(task_extract_animal_names):
+    assert task_extract_animal_names.path == os.path.join(
+        Config().targets_directory(),
+        "Animals__Extract__ExtractAnimalNames.pickle",
     )
-    with pytest.raises(TypeError, match="Expected pandas Series but got"):
-        _ = second_task_with_complete_parent_dataframe_task.input_pandas_series
 
 
-def test_hrqb_task_get_parent_task_target_series(
-    second_task_with_complete_parent_series_task,
+def test_pandas_task_outputs_pandas_pickle_target(task_extract_animal_names):
+    assert isinstance(task_extract_animal_names.target(), PandasPickleTarget)
+
+
+def test_pandas_task_filename_extension(task_extract_animal_names):
+    assert task_extract_animal_names.filename_extension == ".pickle"
+
+
+def test_quickbase_task_outputs_quickbase_table_target(task_load_animals):
+    assert isinstance(task_load_animals.target(), QuickbaseTableTarget)
+
+
+def test_quickbase_task_filename_extension(task_load_animals):
+    assert task_load_animals.filename_extension == ".json"
+
+
+def test_base_task_incomplete_when_target_does_not_exist(
+    task_extract_animal_names,
 ):
-    assert isinstance(
-        second_task_with_complete_parent_series_task.input_pandas_series, pd.Series
-    )
-    with pytest.raises(TypeError, match="Expected pandas Dataframe but got"):
-        _ = second_task_with_complete_parent_series_task.input_pandas_dataframe
+    assert not task_extract_animal_names.target().exists()
+    assert not task_extract_animal_names.complete()
 
 
-def test_hrqb_task_multiple_parent_tasks_single_input_raise_error(
-    tmpdir,
-    second_task_with_complete_parent_dataframe_task,
-    second_task_with_complete_parent_series_task,
+def test_base_task_complete_when_target_exists(
+    task_extract_animal_names, task_extract_animal_names_target
 ):
-    class SecondTask(PandasPickleTask):
-        def requires(self):
-            # note the multiple parent Tasks here
-            return [
-                second_task_with_complete_parent_dataframe_task,
-                second_task_with_complete_parent_series_task,
-            ]
+    assert task_extract_animal_names.target().exists()
+    assert task_extract_animal_names.complete()
 
-    task = SecondTask(path=f"{tmpdir}/bar.pickle", table_name="bar")
+
+def test_base_task_single_input_error_with_multiple_parent_tasks(
+    task_transform_animals,
+):
     with pytest.raises(
         ValueError, match="Expected a single input to this Task but found: 2"
     ):
-        _ = task.single_input
+        task_transform_animals.single_input()
+
+
+def test_base_task_single_input_success(
+    task_load_animals,
+):
+    assert task_load_animals.single_input is not None
+    assert isinstance(task_load_animals.single_input, PandasPickleTarget)
+
+
+def test_base_task_single_input_dataframe_success(
+    task_transform_animals, task_transform_animals_target, task_load_animals
+):
+    assert isinstance(task_load_animals.single_input_dataframe, pd.DataFrame)
+
+
+def test_base_task_named_inputs(
+    task_extract_animal_names,
+    task_extract_animal_colors,
+    task_transform_animals,
+):
+    assert isinstance(task_transform_animals.named_inputs, dict)
+    assert len(task_transform_animals.named_inputs) == 2
+    assert (
+        task_transform_animals.named_inputs["ExtractAnimalNames"].path
+        == task_extract_animal_names.target().path
+    )
+    assert (
+        task_transform_animals.named_inputs["ExtractAnimalColors"].path
+        == task_extract_animal_colors.target().path
+    )
+
+
+def test_quickbase_task_default_get_records_is_parent_task_single_dataframe(
+    task_transform_animals_target, task_load_animals
+):
+    assert (
+        task_load_animals.get_records()
+        == task_transform_animals_target.read().to_dict(orient="records")
+    )
+
+
+def test_quickbase_task_run_upsert_and_json_receipt_output_target_success(
+    task_transform_animals_target, task_load_animals
+):
+    """Mocks upsert to Quickbase, asserting mocked response is written as Target data"""
+    mocked_qb_upsert_receipt = {"message": "upserted to Animals QB Table"}
+
+    with mock.patch("hrqb.base.task.QBClient", autospec=True) as mock_qbclient_class:
+        mock_qbclient = mock_qbclient_class()
+        mock_qbclient.get_table_id.return_value = "abcdef123"
+        mock_qbclient.prepare_upsert_payload.return_value = {}
+        mock_qbclient.upsert_records.return_value = mocked_qb_upsert_receipt
+
+        task_load_animals.run()
+
+    mock_qbclient.get_table_id.assert_called()
+    mock_qbclient.prepare_upsert_payload.assert_called()
+    mock_qbclient.upsert_records.assert_called()
+    assert task_load_animals.target().read() == mocked_qb_upsert_receipt
+
+
+def test_base_pipeline_name(task_pipeline_animals):
+    assert task_pipeline_animals.pipeline_name == "Animals"
