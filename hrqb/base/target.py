@@ -19,7 +19,7 @@ class HRQBLocalTarget(luigi.LocalTarget):
 
 
 class PandasPickleTarget(HRQBLocalTarget):
-    """Target is Pandas object (DataFrame or Series) pickled to disk."""
+    """Target is pandas DataFrame pickled to disk."""
 
     def read(self) -> pd.DataFrame:
         return pd.read_pickle(self.path)

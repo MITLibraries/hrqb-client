@@ -88,7 +88,7 @@ class HRQBTask(luigi.Task):
 
 
 class PandasPickleTask(HRQBTask):
-    """Base Task class for Tasks that write pickled pandas objects."""
+    """Base Task class for Tasks that write a pickled pandas DataFrame."""
 
     @property
     def filename_extension(self) -> str:
