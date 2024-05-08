@@ -19,7 +19,8 @@ class DWClient:
     """Client to provide Oracle Data Warehouse connection and querying."""
 
     connection_string: str = field(
-        default=Config().DATA_WAREHOUSE_CONNECTION_STRING, repr=False
+        factory=lambda: Config().DATA_WAREHOUSE_CONNECTION_STRING,
+        repr=False,
     )
     engine_parameters: dict | None = field(default=None)
     engine: Engine = field(default=None)
@@ -35,7 +36,7 @@ class DWClient:
                 "Data Warehouse connection string not found.  Please pass explicitly to "
                 "DWClient or set env var DATA_WAREHOUSE_CONNECTION_STRING."
             )
-            raise RuntimeError(message)
+            raise AttributeError(message)
 
     def init_engine(self) -> None:
         """Instantiate a SQLAlchemy engine if not already configured and set.

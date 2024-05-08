@@ -1,6 +1,7 @@
 # ruff: noqa: PD901, PLR2004
 
 import pandas as pd
+import pytest
 from sqlalchemy.engine import Engine
 
 from hrqb.utils.data_warehouse import DWClient
@@ -8,6 +9,10 @@ from hrqb.utils.data_warehouse import DWClient
 # NOTE: these tests either exercise the DWClient itself, or use an embedded SQLite
 #   database, and therefore do not require the full Oracle "thick" client to be installed
 #   and successfully loaded (which are handled as separate, optional integration tests).
+
+
+def test_dwclient_default_engine_parameters():
+    assert DWClient.default_engine_parameters() == {"thick_mode": True}
 
 
 def test_dwclient_validate_connection_string_explicit_success(
@@ -23,6 +28,15 @@ def test_dwclient_validate_connection_string_env_var_success(
 ):
     dwclient = DWClient(connection_string=data_warehouse_connection_string)
     assert dwclient.validate_data_warehouse_connection_string() is None
+
+
+def test_dwclient_validate_connection_string_missing_error(
+    monkeypatch, data_warehouse_connection_string
+):
+    monkeypatch.delenv("DATA_WAREHOUSE_CONNECTION_STRING")
+    dwclient = DWClient()
+    with pytest.raises(AttributeError, match="connection string not found"):
+        dwclient.validate_data_warehouse_connection_string()
 
 
 def test_dwclient_sqlite_connection_string_and_engine_success(sqlite_dwclient):
