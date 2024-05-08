@@ -12,6 +12,7 @@ class Config:
         "LUIGI_CONFIG_PATH",
         "QUICKBASE_API_TOKEN",
         "QUICKBASE_APP_ID",
+        "DATA_WAREHOUSE_CONNECTION_STRING",
     )
     OPTIONAL_ENV_VARS = (
         "DYLD_LIBRARY_PATH",

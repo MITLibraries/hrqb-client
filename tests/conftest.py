@@ -11,6 +11,7 @@ from click.testing import CliRunner
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
+from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
 from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
 from tests.fixtures.tasks.load import LoadAnimals
@@ -19,13 +20,17 @@ from tests.fixtures.tasks.transform import PrepareAnimals
 
 
 @pytest.fixture(autouse=True)
-def _test_env(monkeypatch, targets_directory):
+def _test_env(monkeypatch, targets_directory, data_warehouse_connection_string):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
     monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
     monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
     monkeypatch.setenv("TARGETS_DIRECTORY", str(targets_directory))
+    monkeypatch.setenv(
+        "DATA_WAREHOUSE_CONNECTION_STRING",
+        data_warehouse_connection_string,
+    )
 
 
 @pytest.fixture
@@ -263,3 +268,13 @@ def quickbase_load_task_with_parent_data(mocked_transform_pandas_target):
             return mocked_transform_pandas_target
 
     return LoadTaskWithData
+
+
+@pytest.fixture
+def data_warehouse_connection_string():
+    return "oracle+oracledb://user1:pass1@warehouse.mit.edu:1521/DWRHS"
+
+
+@pytest.fixture
+def sqlite_dwclient():
+    return DWClient(connection_string="sqlite:///:memory:", engine_parameters={})
