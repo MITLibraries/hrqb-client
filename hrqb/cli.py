@@ -4,9 +4,10 @@ from time import perf_counter
 
 import click
 
+from hrqb.base.task import HRQBPipelineTask
 from hrqb.config import Config, configure_logger, configure_sentry
 from hrqb.tasks.pipelines import run_pipeline
-from hrqb.utils import click_argument_to_dict, dynamic_import
+from hrqb.utils import click_argument_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def ping(ctx: click.Context) -> None:
     "--pipeline",
     type=str,
     required=True,
-    help="Pipeline Task class name imported from configured pipeline module, "
+    help="Pipeline Task class name to be imported from configured pipeline module, "
     "e.g. 'MyPipeline'",
 )
 @click.option(
@@ -73,9 +74,13 @@ def pipeline(
     pipeline_module: str,
     pipeline_parameters: dict,
 ) -> None:
-    pipeline_task_class = dynamic_import(pipeline_module, pipeline)
-    ctx.obj["PIPELINE_TASK"] = pipeline_task_class(**pipeline_parameters)  # type: ignore[operator]
+    pipeline_task = HRQBPipelineTask.init_task_from_class_path(
+        pipeline,
+        task_class_module=pipeline_module,
+        pipeline_parameters=pipeline_parameters,
+    )
     message = f"Successfully loaded pipeline: '{pipeline_module}.{pipeline}'"
+    ctx.obj["PIPELINE_TASK"] = pipeline_task
     logger.debug(message)
 
 

@@ -185,6 +185,17 @@ class HRQBPipelineTask(luigi.WrapperTask):
     def pipeline_name(self) -> str:
         return self.__class__.__name__
 
+    @staticmethod
+    def init_task_from_class_path(
+        task_class_name: str,
+        task_class_module: str = "hrqb.tasks.pipelines",
+        pipeline_parameters: dict | None = None,
+    ) -> "HRQBPipelineTask":
+        """Factory method to import and instantiate an HRQBPipelineTask via class path."""
+        module = __import__(task_class_module, fromlist=[task_class_name])
+        task_class = getattr(module, task_class_name)
+        return task_class(**pipeline_parameters or {})
+
     def pipeline_tasks_iter(
         self, task: luigi.Task | None = None, level: int = 0
     ) -> Iterator[tuple[int, luigi.Task]]:
