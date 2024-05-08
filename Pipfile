@@ -23,6 +23,7 @@ pre-commit = "*"
 pytest = "*"
 ruff = "*"
 requests-mock = "*"
+freezegun = "*"
 
 [requires]
 python_version = "3.11"
