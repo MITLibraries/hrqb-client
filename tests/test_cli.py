@@ -120,7 +120,7 @@ def test_cli_pipeline_run_and_remove_data_success(caplog, runner):
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
         "run",
-        "--remove-data",
+        "--cleanup",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE

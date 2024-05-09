@@ -64,7 +64,7 @@ def ping(ctx: click.Context) -> None:
 @click.option(
     "--pipeline-parameters",
     callback=click_argument_to_dict,
-    help="Comma separated list luigi Parameters to pass to HRQBPipelineTask, "
+    help="Comma separated list of luigi Parameters to pass to HRQBPipelineTask, "
     "e.g. 'Param1=foo,Param2=bar'.",
 )
 @click.pass_context
@@ -105,20 +105,19 @@ def remove_data(ctx: click.Context) -> None:
 
 @pipeline.command()
 @click.option(
-    "--remove-data",
-    "remove_artifacts",  # renamed as variable to avoid collision with other command
+    "--cleanup",
     is_flag=True,
     help="Pass to automatically removed Task artifacts after run.",
 )
 @click.pass_context
 def run(
     ctx: click.Context,
-    remove_artifacts: bool,  # noqa: FBT001
+    cleanup: bool,  # noqa: FBT001
 ) -> None:
     pipeline_task = ctx.obj["PIPELINE_TASK"]
     run_results = run_pipeline(pipeline_task)
     message = f"Pipeline run result: {run_results.status.name}"
     logger.info(message)
     logger.info(pipeline_task.pipeline_as_ascii())
-    if remove_artifacts:
+    if cleanup:
         ctx.invoke(remove_data)
