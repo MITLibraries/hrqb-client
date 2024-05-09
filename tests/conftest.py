@@ -13,7 +13,12 @@ from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
-from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
+from tests.fixtures.tasks.extract import (
+    ExtractAnimalColors,
+    ExtractAnimalNames,
+    SQLExtractAnimalColors,
+    SQLExtractAnimalNames,
+)
 from tests.fixtures.tasks.load import LoadAnimals
 from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
 from tests.fixtures.tasks.transform import PrepareAnimals
@@ -113,6 +118,16 @@ def task_extract_animal_names(pipeline_name):
 @pytest.fixture
 def task_extract_animal_colors(pipeline_name):
     return ExtractAnimalColors(pipeline=pipeline_name)
+
+
+@pytest.fixture
+def task_sql_extract_animal_names(pipeline_name):
+    return SQLExtractAnimalNames(pipeline=pipeline_name)
+
+
+@pytest.fixture
+def task_sql_extract_animal_colors(pipeline_name):
+    return SQLExtractAnimalColors(pipeline=pipeline_name)
 
 
 @pytest.fixture

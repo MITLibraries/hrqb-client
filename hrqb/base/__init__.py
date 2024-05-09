@@ -4,6 +4,7 @@ from hrqb.base.task import (
     HRQBTask,
     PandasPickleTask,
     QuickbaseUpsertTask,
+    SQLQueryExtractTask,
 )
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "HRQBPipelineTask",
     "HRQBTask",
     "PandasPickleTask",
+    "SQLQueryExtractTask",
     "QuickbaseUpsertTask",
 ]

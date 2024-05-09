@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004
+# ruff: noqa: PLR2004, PD901
 
 import os
 from unittest import mock
@@ -7,8 +7,14 @@ import luigi
 import pandas as pd
 import pytest
 
-from hrqb.base import HRQBTask, PandasPickleTarget, QuickbaseTableTarget
+from hrqb.base import (
+    HRQBTask,
+    PandasPickleTarget,
+    QuickbaseTableTarget,
+    SQLQueryExtractTask,
+)
 from hrqb.config import Config
+from hrqb.utils.data_warehouse import DWClient
 
 
 def test_base_task_required_parameter_pipeline(pipeline_name):
@@ -143,3 +149,76 @@ def test_quickbase_task_run_upsert_and_json_receipt_output_target_success(
 
 def test_base_pipeline_name(task_pipeline_animals):
     assert task_pipeline_animals.pipeline_name == "Animals"
+
+
+def test_base_sql_task_missing_sql_query_property_error(pipeline_name):
+    class MissingQueryTask(SQLQueryExtractTask):
+        # missing required sql_query property
+        pass
+
+    with pytest.raises(TypeError, match="abstract method sql_query"):
+        MissingQueryTask(pipeline=pipeline_name, stage="Extract")
+
+
+def test_base_sql_task_custom_dwclient(task_sql_extract_animal_names):
+    dwclient = task_sql_extract_animal_names.dwclient
+    assert isinstance(dwclient, DWClient)
+    dwclient.init_engine()
+    assert dwclient.engine.name == "sqlite"
+
+
+def test_base_sql_task_sql_query(task_sql_extract_animal_names):
+    assert (
+        task_sql_extract_animal_names.sql_query
+        == """
+        select animal_id, name from animal_name
+        """
+    )
+
+
+def test_base_sql_task_get_dataframe_executes_sql_query_return_dataframe(
+    task_sql_extract_animal_names,
+):
+    df = task_sql_extract_animal_names.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_base_sql_task_sql_query_parameters_used(
+    pipeline_name, sqlite_dwclient, task_sql_extract_animal_colors
+):
+    foo_val, bar_val = 42, "apple"
+
+    class SQLQueryWithParameters(SQLQueryExtractTask):
+        stage = luigi.Parameter("Extract")
+
+        @property
+        def dwclient(self) -> DWClient:
+            return sqlite_dwclient
+
+        @property
+        def sql_query(self) -> str:
+            return """
+            select
+                :foo_val as foo,
+                :bar_val as bar
+            """
+
+        @property
+        def sql_query_parameters(self) -> dict:
+            return {"foo_val": foo_val, "bar_val": bar_val}
+
+    task = SQLQueryWithParameters(pipeline=pipeline_name)
+    df = task.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+    row = df.iloc[0]
+    assert (row.foo, row.bar) == (foo_val, bar_val)
+
+
+def test_base_sql_task_run_writes_pickled_dataframe(task_sql_extract_animal_names):
+    task_sql_extract_animal_names.run()
+
+    assert os.path.exists(task_sql_extract_animal_names.path)
+    assert task_sql_extract_animal_names.get_dataframe().equals(
+        task_sql_extract_animal_names.target.read()
+    )
+    assert task_sql_extract_animal_names.complete()

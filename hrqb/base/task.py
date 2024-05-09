@@ -11,6 +11,7 @@ import pandas as pd
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.config import Config
+from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,31 @@ class PandasPickleTask(HRQBTask):
     def run(self) -> None:
         """Write dataframe prepared by self.get_dataframe as Task Target output."""
         self.target.write(self.get_dataframe())
+
+
+class SQLQueryExtractTask(PandasPickleTask):
+    """Base class for Tasks that make SQL queries for data."""
+
+    @property
+    def dwclient(self) -> DWClient:
+        """Optional property to provide a DWClient instance."""
+        return DWClient()  # pragma: nocover
+
+    @property
+    @abstractmethod
+    def sql_query(self) -> str:
+        """SQL query to run."""
+
+    @property
+    def sql_query_parameters(self) -> dict:
+        """Optional parameters to include with SQL query."""
+        return {}
+
+    def get_dataframe(self) -> pd.DataFrame:
+        """Perform SQL query and return DataFrame for required get_dataframe method."""
+        return self.dwclient.execute_query(
+            self.sql_query, params=self.sql_query_parameters
+        )
 
 
 class QuickbaseUpsertTask(HRQBTask):
