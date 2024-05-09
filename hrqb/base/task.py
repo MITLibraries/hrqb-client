@@ -199,7 +199,11 @@ class HRQBPipelineTask(luigi.WrapperTask):
     def pipeline_tasks_iter(
         self, task: luigi.Task | None = None, level: int = 0
     ) -> Iterator[tuple[int, luigi.Task]]:
-        """Yield Tasks, for all Tasks, in this Pipeline Task."""
+        """Yield all Tasks that are part of the dependency chain for this Task.
+
+        This method begins with the Pipeline Task itself, then recursively discovers and
+        yields parent Tasks as they are required.
+        """
         if task is None:
             task = self
         yield level, task
@@ -207,7 +211,10 @@ class HRQBPipelineTask(luigi.WrapperTask):
             yield from self.pipeline_tasks_iter(task=parent_task, level=level + 1)
 
     def pipeline_targets_iter(self) -> Iterator[tuple[int, luigi.Target]]:
-        """Yield Task Targets, for all Tasks, in this Pipeline Task."""
+        """Yield all Targets that are part of the dependency chain for this Task.
+
+        Using self.pipeline_Tasks_iter(), this yields the Task's Targets.
+        """
         for level, task in self.pipeline_tasks_iter():
             if hasattr(task, "target"):
                 yield level, task.target()
