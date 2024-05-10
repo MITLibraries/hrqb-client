@@ -58,7 +58,7 @@ def test_full_annotated_simple_pipeline():
     # Initializing a Task class directly, as long as the pipeline name is the same, gives
     # us quick access to its outputs (Targets).
     task = CombineLettersAndNumbers(pipeline="AlphaNumeric")
-    task_df = task.target().read()
+    task_df = task.target.read()
 
     # assert the dataframe created by CombineLettersAndNumbers is what we expect
     assert task_df.to_dict() == {

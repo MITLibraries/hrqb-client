@@ -3,12 +3,13 @@
 import json
 import shutil
 
+import luigi
 import pandas as pd
 import pytest
 import requests_mock
 from click.testing import CliRunner
 
-from hrqb.base import QuickbaseTableTarget
+from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.utils.quickbase import QBClient
 from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
@@ -35,6 +36,20 @@ def runner():
 @pytest.fixture
 def targets_directory(tmp_path_factory):
     return tmp_path_factory.mktemp("targets")
+
+
+@pytest.fixture
+def generic_hrqb_task_class():
+    class GenericTask(HRQBTask):
+        @property
+        def target(self):
+            return luigi.LocalTarget(path=self.path)
+
+        @property
+        def filename_extension(self):
+            return ".csv"
+
+    return GenericTask
 
 
 @pytest.fixture
@@ -121,7 +136,7 @@ def task_extract_animal_names_target(targets_directory, task_extract_animal_name
         "tests/fixtures/targets/Animals__Extract__ExtractAnimalNames.pickle",
         task_extract_animal_names.path,
     )
-    return task_extract_animal_names.target()
+    return task_extract_animal_names.target
 
 
 @pytest.fixture
@@ -130,7 +145,7 @@ def task_extract_animal_colors_target(targets_directory, task_extract_animal_col
         "tests/fixtures/targets/Animals__Extract__ExtractAnimalColors.pickle",
         task_extract_animal_colors.path,
     )
-    return task_extract_animal_colors.target()
+    return task_extract_animal_colors.target
 
 
 @pytest.fixture
@@ -139,7 +154,7 @@ def task_transform_animals_target(targets_directory, task_transform_animals):
         "tests/fixtures/targets/Animals__Transform__PrepareAnimals.pickle",
         task_transform_animals.path,
     )
-    return task_transform_animals.target()
+    return task_transform_animals.target
 
 
 @pytest.fixture
@@ -148,7 +163,7 @@ def task_load_animals_target(targets_directory, task_load_animals):
         "tests/fixtures/targets/Animals__Load__LoadAnimals.json",
         task_load_animals.path,
     )
-    return task_load_animals.target()
+    return task_load_animals.target
 
 
 @pytest.fixture

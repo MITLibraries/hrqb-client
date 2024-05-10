@@ -49,6 +49,15 @@ class HRQBTask(luigi.Task):
 
     @property
     @abstractmethod
+    def target(self) -> luigi.Target:
+        """Convenience property to provide instantiated Target as output for this Task."""
+
+    def output(self) -> luigi.Target:
+        """Satisfy required luigi.Task method by returning prepared Target."""
+        return self.target
+
+    @property
+    @abstractmethod
     def filename_extension(self) -> str:
         pass  # pragma: nocover
 
@@ -97,14 +106,12 @@ class PandasPickleTask(HRQBTask):
     def filename_extension(self) -> str:
         return ".pickle"
 
+    @property
     def target(self) -> PandasPickleTarget:
         return PandasPickleTarget(
             path=self.path,
             table_name=self.table_name,
         )
-
-    def output(self) -> PandasPickleTarget:  # pragma: no cover
-        return self.target()
 
     @abstractmethod
     def get_dataframe(self) -> pd.DataFrame:
@@ -115,7 +122,7 @@ class PandasPickleTask(HRQBTask):
 
     def run(self) -> None:
         """Write dataframe prepared by self.get_dataframe as Task Target output."""
-        self.target().write(self.get_dataframe())
+        self.target.write(self.get_dataframe())
 
 
 class QuickbaseUpsertTask(HRQBTask):
@@ -125,14 +132,12 @@ class QuickbaseUpsertTask(HRQBTask):
     def filename_extension(self) -> str:
         return ".json"
 
+    @property
     def target(self) -> QuickbaseTableTarget:
         return QuickbaseTableTarget(
             path=self.path,
             table_name=self.table_name,
         )
-
-    def output(self) -> QuickbaseTableTarget:  # pragma: no cover
-        return self.target()
 
     def get_records(self) -> list[dict]:
         """Get Records data that will be upserted to Quickbase.
@@ -160,7 +165,7 @@ class QuickbaseUpsertTask(HRQBTask):
         )
         results = qbclient.upsert_records(upsert_payload)
 
-        self.target().write(results)
+        self.target.write(results)
 
 
 class HRQBPipelineTask(luigi.WrapperTask):
@@ -217,7 +222,7 @@ class HRQBPipelineTask(luigi.WrapperTask):
         """
         for level, task in self.pipeline_tasks_iter():
             if hasattr(task, "target"):
-                yield level, task.target()
+                yield level, task.target
 
     def pipeline_as_ascii(self) -> str:
         """Return an ASCII representation of this Pipeline Task."""

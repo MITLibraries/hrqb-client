@@ -24,4 +24,4 @@ class LoadAnimalsDebug(QuickbaseUpsertTask):
     def run(self):
         """Override default method to print data instead of upsert to Quickbase."""
         print(self.single_input_dataframe)  # noqa: T201
-        self.target().write({"note": "data printed to console"})
+        self.target.write({"note": "data printed to console"})
