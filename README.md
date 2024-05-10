@@ -35,6 +35,7 @@ WORKSPACE=# Set to `dev` for local development, this will be set to `stage` and 
 LUIGI_CONFIG_PATH=hrqb/luigi.cfg # this env var must be set, pointing to config file in hrqb folder
 QUICKBASE_API_TOKEN=# Quickbase API token
 QUICKBASE_APP_ID=# Quickbase App ID
+DATA_WAREHOUSE_CONNECTION_STRING=# Data Warehouse SQLAlchemy connection string, e.g. oracle+oracledb://user1:pass1@example.org:1521/ABCDE
 ```
 
 ### Optional
