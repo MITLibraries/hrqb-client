@@ -38,6 +38,7 @@ class Config:
 
 
 def configure_logger(logger: logging.Logger, *, verbose: bool) -> str:
+    # configure app logger
     if verbose:
         logging.basicConfig(
             format="%(asctime)s %(levelname)s %(name)s.%(funcName)s() line %(lineno)d: "
@@ -51,10 +52,20 @@ def configure_logger(logger: logging.Logger, *, verbose: bool) -> str:
             format="%(asctime)s %(levelname)s %(name)s.%(funcName)s(): %(message)s"
         )
         logger.setLevel(logging.INFO)
+
+    # configure luigi loggers
+    configure_luigi_loggers(verbose)
+
     return (
         f"Logger '{logger.name}' configured with level="
         f"{logging.getLevelName(logger.getEffectiveLevel())}"
     )
+
+
+def configure_luigi_loggers(verbose: bool) -> None:  # noqa: FBT001
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.getLogger("luigi-interface").setLevel(level)
+    logging.getLogger("luigi.scheduler").setLevel(level)
 
 
 def configure_sentry() -> str:

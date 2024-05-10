@@ -1,7 +1,9 @@
 """hrqb.base.task"""
 
+import logging
 import os
 from abc import abstractmethod
+from collections.abc import Iterator
 from typing import Literal
 
 import luigi  # type: ignore[import-untyped]
@@ -9,8 +11,9 @@ import pandas as pd
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.config import Config
-from hrqb.utils import today_date
 from hrqb.utils.quickbase import QBClient
+
+logger = logging.getLogger(__name__)
 
 
 class HRQBTask(luigi.Task):
@@ -43,6 +46,15 @@ class HRQBTask(luigi.Task):
             + self.filename_extension
         )
         return os.path.join(Config().targets_directory(), filename)
+
+    @property
+    @abstractmethod
+    def target(self) -> luigi.Target:
+        """Convenience property to provide instantiated Target as output for this Task."""
+
+    def output(self) -> luigi.Target:
+        """Satisfy required luigi.Task method by returning prepared Target."""
+        return self.target
 
     @property
     @abstractmethod
@@ -94,14 +106,23 @@ class PandasPickleTask(HRQBTask):
     def filename_extension(self) -> str:
         return ".pickle"
 
+    @property
     def target(self) -> PandasPickleTarget:
         return PandasPickleTarget(
             path=self.path,
             table_name=self.table_name,
         )
 
-    def output(self) -> PandasPickleTarget:  # pragma: no cover
-        return self.target()
+    @abstractmethod
+    def get_dataframe(self) -> pd.DataFrame:
+        """Get dataframe that will be the output of this PandasPickleTask.
+
+        This method is required by any Tasks extending this class.
+        """
+
+    def run(self) -> None:
+        """Write dataframe prepared by self.get_dataframe as Task Target output."""
+        self.target.write(self.get_dataframe())
 
 
 class QuickbaseUpsertTask(HRQBTask):
@@ -111,14 +132,12 @@ class QuickbaseUpsertTask(HRQBTask):
     def filename_extension(self) -> str:
         return ".json"
 
+    @property
     def target(self) -> QuickbaseTableTarget:
         return QuickbaseTableTarget(
             path=self.path,
             table_name=self.table_name,
         )
-
-    def output(self) -> QuickbaseTableTarget:  # pragma: no cover
-        return self.target()
 
     def get_records(self) -> list[dict]:
         """Get Records data that will be upserted to Quickbase.
@@ -146,12 +165,80 @@ class QuickbaseUpsertTask(HRQBTask):
         )
         results = qbclient.upsert_records(upsert_payload)
 
-        self.target().write(results)
+        self.target.write(results)
 
 
 class HRQBPipelineTask(luigi.WrapperTask):
-    date = luigi.DateParameter(default=today_date())
+    """Base class for Pipeline Tasks.
+
+    This extends the special luigi.WrapperTask which is not designed to perform work by
+    itself, but instead yield other Tasks from its requires() method.
+
+    Example:
+        def requires(self):
+            yield TaskA(...)
+            yield TaskB(...)
+
+    This effectively creates a "Pipeline" of these Tasks defined here as the root Tasks,
+    where all required parent Tasks are also invoked.
+
+    It is these HRQBPipelineTasks that are designed to be invoked by the application's
+    CLI.
+    """
 
     @property
     def pipeline_name(self) -> str:
         return self.__class__.__name__
+
+    @staticmethod
+    def init_task_from_class_path(
+        task_class_name: str,
+        task_class_module: str = "hrqb.tasks.pipelines",
+        pipeline_parameters: dict | None = None,
+    ) -> "HRQBPipelineTask":
+        """Factory method to import and instantiate an HRQBPipelineTask via class path."""
+        module = __import__(task_class_module, fromlist=[task_class_name])
+        task_class = getattr(module, task_class_name)
+        return task_class(**pipeline_parameters or {})
+
+    def pipeline_tasks_iter(
+        self, task: luigi.Task | None = None, level: int = 0
+    ) -> Iterator[tuple[int, luigi.Task]]:
+        """Yield all Tasks that are part of the dependency chain for this Task.
+
+        This method begins with the Pipeline Task itself, then recursively discovers and
+        yields parent Tasks as they are required.
+        """
+        if task is None:
+            task = self
+        yield level, task
+        for parent_task in task.requires():
+            yield from self.pipeline_tasks_iter(task=parent_task, level=level + 1)
+
+    def pipeline_targets_iter(self) -> Iterator[tuple[int, luigi.Target]]:
+        """Yield all Targets that are part of the dependency chain for this Task.
+
+        Using self.pipeline_Tasks_iter(), this yields the Task's Targets.
+        """
+        for level, task in self.pipeline_tasks_iter():
+            if hasattr(task, "target"):
+                yield level, task.target
+
+    def pipeline_as_ascii(self) -> str:
+        """Return an ASCII representation of this Pipeline Task."""
+        output = ""
+        for level, task in self.pipeline_tasks_iter():
+            green_complete = "\033[92mCOMPLETE\033[0m"
+            red_incomplete = "\033[91mINCOMPLETE\033[0m"
+            status = green_complete if task.complete() else red_incomplete
+            indent = "   " * level + "├──"
+            output += f"\n{indent} {status}: {task}"
+        return output
+
+    def remove_pipeline_targets(self) -> None:
+        """Remove Targets for all Tasks in this Pipeline Task."""
+        for _, target in self.pipeline_targets_iter():
+            if target.exists() and hasattr(target, "remove"):
+                target.remove()
+                message = f"Target {target} successfully removed"
+                logger.debug(message)
