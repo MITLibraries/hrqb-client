@@ -287,7 +287,7 @@ def quickbase_load_task_with_parent_data(mocked_transform_pandas_target):
 
 @pytest.fixture
 def data_warehouse_connection_string():
-    return "oracle+oracledb://user1:pass1@warehouse.mit.edu:1521/DWRHS"
+    return "oracle+oracledb://user1:pass1@example.org:1521/ABCDE"
 
 
 @pytest.fixture

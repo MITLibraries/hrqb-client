@@ -15,6 +15,13 @@ def test_dwclient_default_engine_parameters():
     assert DWClient.default_engine_parameters() == {"thick_mode": True}
 
 
+def test_dwclient_default_connection_string_from_env_var_success(
+    monkeypatch, data_warehouse_connection_string
+):
+    dwclient = DWClient()
+    assert dwclient.connection_string == data_warehouse_connection_string
+
+
 def test_dwclient_validate_connection_string_explicit_success(
     monkeypatch, data_warehouse_connection_string
 ):

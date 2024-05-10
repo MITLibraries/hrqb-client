@@ -4,10 +4,8 @@ import logging
 
 import pandas as pd
 from attrs import define, field
-from sqlalchemy import (
-    Engine,
-    create_engine,
-)
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 
 from hrqb.config import Config
 
