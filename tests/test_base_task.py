@@ -151,13 +151,15 @@ def test_base_pipeline_name(task_pipeline_animals):
     assert task_pipeline_animals.pipeline_name == "Animals"
 
 
-def test_base_sql_task_missing_sql_query_property_error(pipeline_name):
-    class MissingQueryTask(SQLQueryExtractTask):
-        # missing required sql_query property
+def test_base_sql_task_missing_sql_query_or_sql_file_error(pipeline_name):
+    class MissingRequiredPropertiesQueryTask(SQLQueryExtractTask):
         pass
 
-    with pytest.raises(TypeError, match="abstract method sql_query"):
-        MissingQueryTask(pipeline=pipeline_name, stage="Extract")
+    task = MissingRequiredPropertiesQueryTask(pipeline=pipeline_name, stage="Extract")
+    with pytest.raises(
+        AttributeError, match="Property sql_query or sql_file must be set."
+    ):
+        task.get_dataframe()
 
 
 def test_base_sql_task_custom_dwclient(task_sql_extract_animal_names):
@@ -176,10 +178,24 @@ def test_base_sql_task_sql_query(task_sql_extract_animal_names):
     )
 
 
-def test_base_sql_task_get_dataframe_executes_sql_query_return_dataframe(
+def test_base_sql_task_sql_file(task_sql_extract_animal_colors):
+    assert (
+        task_sql_extract_animal_colors.sql_file
+        == "tests/fixtures/sql/animal_color_query.sql"
+    )
+
+
+def test_base_sql_task_sql_query_get_dataframe_return_dataframe(
     task_sql_extract_animal_names,
 ):
     df = task_sql_extract_animal_names.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_base_sql_task_sql_file_get_dataframe_return_dataframe(
+    task_sql_extract_animal_colors,
+):
+    df = task_sql_extract_animal_colors.get_dataframe()
     assert isinstance(df, pd.DataFrame)
 
 

@@ -135,9 +135,14 @@ class SQLQueryExtractTask(PandasPickleTask):
         return DWClient()  # pragma: nocover
 
     @property
-    @abstractmethod
-    def sql_query(self) -> str:
-        """SQL query to run."""
+    def sql_query(self) -> str | None:
+        """SQL query from string to execute."""
+        return None
+
+    @property
+    def sql_file(self) -> str | None:
+        """SQL query loaded from file to execute."""
+        return None
 
     @property
     def sql_query_parameters(self) -> dict:
@@ -146,8 +151,17 @@ class SQLQueryExtractTask(PandasPickleTask):
 
     def get_dataframe(self) -> pd.DataFrame:
         """Perform SQL query and return DataFrame for required get_dataframe method."""
+        if self.sql_query:
+            query = self.sql_query
+        elif self.sql_file:
+            with open(self.sql_file) as f:
+                query = f.read()
+        else:
+            message = "Property sql_query or sql_file must be set."
+            raise AttributeError(message)
         return self.dwclient.execute_query(
-            self.sql_query, params=self.sql_query_parameters
+            query,
+            params=self.sql_query_parameters,
         )
 
 

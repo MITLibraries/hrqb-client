@@ -45,10 +45,8 @@ class SQLExtractAnimalColors(SQLQueryExtractTask):
         )
 
     @property
-    def sql_query(self) -> str:
-        return """
-        select animal_id, color from animal_color
-        """
+    def sql_file(self) -> str:
+        return "tests/fixtures/sql/animal_color_query.sql"
 
 
 class SQLExtractAnimalNames(SQLQueryExtractTask):
