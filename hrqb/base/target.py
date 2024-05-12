@@ -25,6 +25,12 @@ class PandasPickleTarget(HRQBLocalTarget):
     def write(self, df: pd.DataFrame) -> None:
         df.to_pickle(self.path)
 
+    @property
+    def records_count(self) -> int | None:
+        if self.exists():
+            return len(self.read())
+        return None
+
 
 class QuickbaseTableTarget(HRQBLocalTarget):
     """Target is upsert to Quickbase table."""
@@ -36,3 +42,9 @@ class QuickbaseTableTarget(HRQBLocalTarget):
     def write(self, data: dict, indent: bool = True) -> int:  # noqa: FBT001, FBT002
         with open(self.path, "w") as f:
             return f.write(json.dumps(data, indent=indent))
+
+    @property
+    def records_count(self) -> int | None:
+        if self.exists():
+            return self.read()["metadata"]["totalNumberOfRecordsProcessed"]
+        return None
