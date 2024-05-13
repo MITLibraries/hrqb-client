@@ -229,9 +229,14 @@ class HRQBPipelineTask(luigi.WrapperTask):
     CLI.
     """
 
+    parent_pipeline_name = luigi.OptionalStrParameter(default=None, significant=False)
+
     @property
     def pipeline_name(self) -> str:
-        return self.__class__.__name__
+        output = self.__class__.__name__
+        if self.parent_pipeline_name:
+            output = f"{self.parent_pipeline_name}__{output}"
+        return output
 
     @staticmethod
     def init_task_from_class_path(

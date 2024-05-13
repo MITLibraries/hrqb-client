@@ -151,6 +151,12 @@ def test_base_pipeline_name(task_pipeline_animals):
     assert task_pipeline_animals.pipeline_name == "Animals"
 
 
+def test_base_pipeline_name_with_parent_pipelines(task_pipeline_creatures):
+    assert task_pipeline_creatures.pipeline_name == "Creatures"
+    child_task = task_pipeline_creatures.deps()[0]
+    assert child_task.pipeline_name == "Creatures__Animals"
+
+
 def test_base_sql_task_missing_sql_query_or_sql_file_error(pipeline_name):
     class MissingRequiredPropertiesQueryTask(SQLQueryExtractTask):
         pass

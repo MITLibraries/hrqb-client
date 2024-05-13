@@ -21,7 +21,7 @@ from tests.fixtures.tasks.extract import (
     SQLQueryWithParameters,
 )
 from tests.fixtures.tasks.load import LoadAnimals
-from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
+from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug, Creatures
 from tests.fixtures.tasks.transform import PrepareAnimals
 
 
@@ -142,18 +142,23 @@ def task_load_animals(pipeline_name):
 
 
 @pytest.fixture
-def task_pipeline_animals(pipeline_name):
+def task_pipeline_animals():
     return Animals()
 
 
 @pytest.fixture
-def task_pipeline_animals_debug(pipeline_name):
+def task_pipeline_animals_debug():
     return AnimalsDebug()
 
 
 @pytest.fixture
 def task_extract_sql_query_with_parameters(pipeline_name):
     return SQLQueryWithParameters(pipeline=pipeline_name)
+
+
+@pytest.fixture
+def task_pipeline_creatures():
+    return Creatures()
 
 
 @pytest.fixture
