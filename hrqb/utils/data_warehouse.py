@@ -20,15 +20,11 @@ class DWClient:
         factory=lambda: Config().DATA_WAREHOUSE_CONNECTION_STRING,
         repr=False,
     )
-    engine_parameters: dict | None = field(default=None)
+    engine_parameters: dict = field(factory=lambda: {"thick_mode": True})
     engine: Engine = field(default=None)
 
-    @staticmethod
-    def default_engine_parameters() -> dict:
-        return {"thick_mode": True}
-
-    def validate_data_warehouse_connection_string(self) -> None:
-        """Validates that a proper connection is configured."""
+    def verify_connection_string_set(self) -> None:
+        """Verify that a connection string is set explicitly or by env var default."""
         if not self.connection_string:
             message = (
                 "Data Warehouse connection string not found.  Please pass explicitly to "
@@ -41,14 +37,9 @@ class DWClient:
 
         User provided engine parameters will override self.default_engine_parameters.
         """
-        self.validate_data_warehouse_connection_string()
+        self.verify_connection_string_set()
         if not self.engine:
-            engine_parameters = (
-                self.engine_parameters
-                if self.engine_parameters is not None
-                else self.default_engine_parameters()
-            )
-            self.engine = create_engine(self.connection_string, **engine_parameters)
+            self.engine = create_engine(self.connection_string, **self.engine_parameters)
 
     def execute_query(self, query: str, params: dict | None = None) -> pd.DataFrame:
         """Execute SQL query, with optional parameters, returning a pandas Dataframe.

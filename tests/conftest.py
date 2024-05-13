@@ -18,6 +18,7 @@ from tests.fixtures.tasks.extract import (
     ExtractAnimalNames,
     SQLExtractAnimalColors,
     SQLExtractAnimalNames,
+    SQLQueryWithParameters,
 )
 from tests.fixtures.tasks.load import LoadAnimals
 from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
@@ -148,6 +149,11 @@ def task_pipeline_animals(pipeline_name):
 @pytest.fixture
 def task_pipeline_animals_debug(pipeline_name):
     return AnimalsDebug()
+
+
+@pytest.fixture
+def task_extract_sql_query_with_parameters(pipeline_name):
+    return SQLQueryWithParameters(pipeline=pipeline_name)
 
 
 @pytest.fixture

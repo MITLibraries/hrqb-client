@@ -12,7 +12,7 @@ from hrqb.utils.data_warehouse import DWClient
 
 
 def test_dwclient_default_engine_parameters():
-    assert DWClient.default_engine_parameters() == {"thick_mode": True}
+    assert DWClient().engine_parameters == {"thick_mode": True}
 
 
 def test_dwclient_default_connection_string_from_env_var_success(
@@ -27,14 +27,14 @@ def test_dwclient_validate_connection_string_explicit_success(
 ):
     monkeypatch.delenv("DATA_WAREHOUSE_CONNECTION_STRING")
     dwclient = DWClient(connection_string=data_warehouse_connection_string)
-    assert dwclient.validate_data_warehouse_connection_string() is None
+    assert dwclient.verify_connection_string_set() is None
 
 
 def test_dwclient_validate_connection_string_env_var_success(
     monkeypatch, data_warehouse_connection_string
 ):
     dwclient = DWClient(connection_string=data_warehouse_connection_string)
-    assert dwclient.validate_data_warehouse_connection_string() is None
+    assert dwclient.verify_connection_string_set() is None
 
 
 def test_dwclient_validate_connection_string_missing_error(
@@ -43,7 +43,7 @@ def test_dwclient_validate_connection_string_missing_error(
     monkeypatch.delenv("DATA_WAREHOUSE_CONNECTION_STRING")
     dwclient = DWClient()
     with pytest.raises(AttributeError, match="connection string not found"):
-        dwclient.validate_data_warehouse_connection_string()
+        dwclient.verify_connection_string_set()
 
 
 def test_dwclient_sqlite_connection_string_and_engine_success(sqlite_dwclient):

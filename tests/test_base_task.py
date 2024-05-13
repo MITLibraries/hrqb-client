@@ -199,35 +199,11 @@ def test_base_sql_task_sql_file_get_dataframe_return_dataframe(
     assert isinstance(df, pd.DataFrame)
 
 
-def test_base_sql_task_sql_query_parameters_used(
-    pipeline_name, sqlite_dwclient, task_sql_extract_animal_colors
-):
-    foo_val, bar_val = 42, "apple"
-
-    class SQLQueryWithParameters(SQLQueryExtractTask):
-        stage = luigi.Parameter("Extract")
-
-        @property
-        def dwclient(self) -> DWClient:
-            return sqlite_dwclient
-
-        @property
-        def sql_query(self) -> str:
-            return """
-            select
-                :foo_val as foo,
-                :bar_val as bar
-            """
-
-        @property
-        def sql_query_parameters(self) -> dict:
-            return {"foo_val": foo_val, "bar_val": bar_val}
-
-    task = SQLQueryWithParameters(pipeline=pipeline_name)
-    df = task.get_dataframe()
+def test_base_sql_task_sql_query_parameters_used(task_extract_sql_query_with_parameters):
+    df = task_extract_sql_query_with_parameters.get_dataframe()
     assert isinstance(df, pd.DataFrame)
     row = df.iloc[0]
-    assert (row.foo, row.bar) == (foo_val, bar_val)
+    assert (row.foo, row.bar) == (42, "apple")
 
 
 def test_base_sql_task_run_writes_pickled_dataframe(task_sql_extract_animal_names):

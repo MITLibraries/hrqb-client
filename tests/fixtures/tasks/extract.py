@@ -4,6 +4,8 @@ import pandas as pd
 from hrqb.base import PandasPickleTask, SQLQueryExtractTask
 from hrqb.utils.data_warehouse import DWClient
 
+SQLITE_CONNECTION_STRING = "sqlite:///tests/fixtures/sql_extract_task_test_data.sqlite"
+
 
 class ExtractAnimalColors(PandasPickleTask):
     pipeline = luigi.Parameter()
@@ -40,7 +42,7 @@ class SQLExtractAnimalColors(SQLQueryExtractTask):
     @property
     def dwclient(self) -> DWClient:
         return DWClient(
-            connection_string="sqlite:///tests/fixtures/sql_extract_task_test_data.sqlite",
+            connection_string=SQLITE_CONNECTION_STRING,
             engine_parameters={},
         )
 
@@ -56,7 +58,7 @@ class SQLExtractAnimalNames(SQLQueryExtractTask):
     @property
     def dwclient(self) -> DWClient:
         return DWClient(
-            connection_string="sqlite:///tests/fixtures/sql_extract_task_test_data.sqlite",
+            connection_string=SQLITE_CONNECTION_STRING,
             engine_parameters={},
         )
 
@@ -65,3 +67,26 @@ class SQLExtractAnimalNames(SQLQueryExtractTask):
         return """
         select animal_id, name from animal_name
         """
+
+
+class SQLQueryWithParameters(SQLQueryExtractTask):
+    stage = luigi.Parameter("Extract")
+
+    @property
+    def dwclient(self) -> DWClient:
+        return DWClient(
+            connection_string=SQLITE_CONNECTION_STRING,
+            engine_parameters={},
+        )
+
+    @property
+    def sql_query(self) -> str:
+        return """
+        select
+            :foo_val as foo,
+            :bar_val as bar
+        """
+
+    @property
+    def sql_query_parameters(self) -> dict:
+        return {"foo_val": 42, "bar_val": "apple"}
