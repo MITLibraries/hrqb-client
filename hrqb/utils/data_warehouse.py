@@ -14,7 +14,20 @@ logger = logging.getLogger(__name__)
 
 @define
 class DWClient:
-    """Client to provide Oracle Data Warehouse connection and querying."""
+    """Client to provide Oracle Data Warehouse connection and querying.
+
+    Fields:
+        connection_string: str
+            - full SQLAlchemy connection string, e.g.
+                - oracle: oracle+oracledb://user1:pass1@example.org:1521/ABCDE
+                - sqlite: sqlite:///:memory:
+            - defaults to env var DATA_WAREHOUSE_CONNECTION_STRING, loaded from env vars
+            at time of DWClient initialization
+        engine_parameters: dict
+            - optional dictionary of SQLAlchemy engine parameters
+        engine: Engine
+            - set via self.init_engine()
+    """
 
     connection_string: str = field(
         factory=lambda: Config().DATA_WAREHOUSE_CONNECTION_STRING,
@@ -33,10 +46,7 @@ class DWClient:
             raise AttributeError(message)
 
     def init_engine(self) -> None:
-        """Instantiate a SQLAlchemy engine if not already configured and set.
-
-        User provided engine parameters will override self.default_engine_parameters.
-        """
+        """Instantiate a SQLAlchemy engine if not already configured and set."""
         self.verify_connection_string_set()
         if not self.engine:
             self.engine = create_engine(self.connection_string, **self.engine_parameters)
