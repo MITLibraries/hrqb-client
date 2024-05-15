@@ -135,9 +135,20 @@ class SQLQueryExtractTask(PandasPickleTask):
         return DWClient()  # pragma: nocover
 
     @property
-    def sql_query(self) -> str | None:
-        """SQL query from string to execute."""
-        return None
+    def sql_query(self) -> str:
+        """SQL query from string to execute.
+
+        Default behavior is to read a SQL file defined by self.sql_file.  Or, this
+        property can be overridden to provide a SQL query explicitly.
+        """
+        if not self.sql_file:
+            message = (
+                "Property 'sql_file' must be set or property 'sql_query' overridden to "
+                "explicitly return a SQL string."
+            )
+            raise AttributeError(message)
+        with open(self.sql_file) as f:
+            return f.read()
 
     @property
     def sql_file(self) -> str | None:
@@ -151,16 +162,8 @@ class SQLQueryExtractTask(PandasPickleTask):
 
     def get_dataframe(self) -> pd.DataFrame:
         """Perform SQL query and return DataFrame for required get_dataframe method."""
-        if self.sql_query:
-            query = self.sql_query
-        elif self.sql_file:
-            with open(self.sql_file) as f:
-                query = f.read()
-        else:
-            message = "Property sql_query or sql_file must be set."
-            raise AttributeError(message)
         return self.dwclient.execute_query(
-            query,
+            self.sql_query,
             params=self.sql_query_parameters,
         )
 
