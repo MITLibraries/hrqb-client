@@ -17,6 +17,7 @@ class Config:
     OPTIONAL_ENV_VARS = (
         "DYLD_LIBRARY_PATH",
         "TARGETS_DIRECTORY",
+        "LUIGI_NUM_WORKERS",
     )
 
     def check_required_env_vars(self) -> None:
