@@ -10,6 +10,7 @@ class Config:
         "WORKSPACE",
         "SENTRY_DSN",
         "LUIGI_CONFIG_PATH",
+        "QUICKBASE_API_URL",
         "QUICKBASE_API_TOKEN",
         "QUICKBASE_APP_ID",
         "DATA_WAREHOUSE_CONNECTION_STRING",

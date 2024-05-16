@@ -31,6 +31,7 @@ def _test_env(monkeypatch, targets_directory, data_warehouse_connection_string):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
+    monkeypatch.setenv("QUICKBASE_API_URL", "http://qb.example.org/v1")
     monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
     monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
     monkeypatch.setenv("TARGETS_DIRECTORY", str(targets_directory))

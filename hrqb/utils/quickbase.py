@@ -18,7 +18,7 @@ RequestsMethod = Callable[..., requests.Response]
 
 @define
 class QBClient:
-    api_base: str = field(default="https://api.quickbase.com/v1")
+    api_base: str = field(factory=lambda: Config().QUICKBASE_API_URL)
     cache_results: bool = field(default=True)
     _cache: dict = field(factory=dict, repr=False)
 

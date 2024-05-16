@@ -9,12 +9,13 @@ import pytest
 from hrqb.exceptions import QBFieldNotFoundError
 
 
-def test_qbclient_init(qbclient):
+def test_qbclient_init_defaults_from_env_vars(qbclient):
     assert (
         qbclient.request_headers["Authorization"]
         == f"QB-USER-TOKEN {os.environ['QUICKBASE_API_TOKEN']}"
     )
     assert qbclient.app_id == os.environ["QUICKBASE_APP_ID"]
+    assert qbclient.api_base == os.environ["QUICKBASE_API_URL"]
 
 
 def test_qbclient_cache_api_request_response(qbclient, mocked_qb_api_getApp):
