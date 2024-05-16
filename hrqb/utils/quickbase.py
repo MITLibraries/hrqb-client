@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterator
 import pandas as pd
 import requests
 from attrs import define, field
+from requests.exceptions import RequestException
 
 from hrqb.config import Config
 from hrqb.exceptions import QBFieldNotFoundError
@@ -50,15 +51,25 @@ class QBClient:
             return self._cache[request_hash]
 
         # make API call
-        results = requests_method(
+        response = requests_method(
             f"{self.api_base}/{path.removeprefix('/')}",
             headers=self.request_headers,
             **kwargs,
-        ).json()
-        if self.cache_results:
-            self._cache[request_hash] = results
+        )
 
-        return results
+        # handle non 2xx responses
+        if not 200 <= response.status_code < 300:  # noqa: PLR2004
+            message = (
+                f"Quickbase API error - status {response.status_code}, "
+                f"content: {response.text}"
+            )
+            raise RequestException(message)
+
+        data = response.json()
+        if self.cache_results:
+            self._cache[request_hash] = data
+
+        return data
 
     def get_app_info(self) -> dict:
         """Retrieve information about the QB app.

@@ -5,6 +5,8 @@ from unittest import mock
 
 import pandas as pd
 import pytest
+import requests
+from requests.models import Response
 
 from hrqb.exceptions import QBFieldNotFoundError
 
@@ -162,3 +164,14 @@ def test_qbclient_get_table_as_df_some_fields(qbclient_with_mocked_table_fields)
     )
     assert list(records_df.columns) == fields
     assert "Date time" not in records_df.columns
+
+
+def test_qbclient_api_non_2xx_response_error(qbclient):
+    with mock.patch.object(requests, "get") as mocked_get:
+        response = Response()
+        response.status_code = 400
+        mocked_get.return_value = response
+        with pytest.raises(
+            requests.RequestException, match="Quickbase API error - status 400"
+        ):
+            assert qbclient.make_request(requests.get, "/always/fail")
