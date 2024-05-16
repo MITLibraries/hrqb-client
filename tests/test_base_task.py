@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004
+# ruff: noqa: PLR2004, PD901
 
 import os
 from unittest import mock
@@ -7,8 +7,14 @@ import luigi
 import pandas as pd
 import pytest
 
-from hrqb.base import HRQBTask, PandasPickleTarget, QuickbaseTableTarget
+from hrqb.base import (
+    HRQBTask,
+    PandasPickleTarget,
+    QuickbaseTableTarget,
+    SQLQueryExtractTask,
+)
 from hrqb.config import Config
+from hrqb.utils.data_warehouse import DWClient
 
 
 def test_base_task_required_parameter_pipeline(pipeline_name):
@@ -143,3 +149,72 @@ def test_quickbase_task_run_upsert_and_json_receipt_output_target_success(
 
 def test_base_pipeline_name(task_pipeline_animals):
     assert task_pipeline_animals.pipeline_name == "Animals"
+
+
+def test_base_sql_task_missing_sql_query_or_sql_file_error(pipeline_name):
+    class MissingRequiredPropertiesQueryTask(SQLQueryExtractTask):
+        pass
+
+    task = MissingRequiredPropertiesQueryTask(pipeline=pipeline_name, stage="Extract")
+    with pytest.raises(
+        AttributeError,
+        match=(
+            "Property 'sql_file' must be set or property 'sql_query' overridden to "
+            "explicitly return a SQL string."
+        ),
+    ):
+        task.get_dataframe()
+
+
+def test_base_sql_task_custom_dwclient(task_sql_extract_animal_names):
+    dwclient = task_sql_extract_animal_names.dwclient
+    assert isinstance(dwclient, DWClient)
+    dwclient.init_engine()
+    assert dwclient.engine.name == "sqlite"
+
+
+def test_base_sql_task_sql_query(task_sql_extract_animal_names):
+    assert (
+        task_sql_extract_animal_names.sql_query
+        == """
+        select animal_id, name from animal_name
+        """
+    )
+
+
+def test_base_sql_task_sql_file(task_sql_extract_animal_colors):
+    assert (
+        task_sql_extract_animal_colors.sql_file
+        == "tests/fixtures/sql/animal_color_query.sql"
+    )
+
+
+def test_base_sql_task_sql_query_get_dataframe_return_dataframe(
+    task_sql_extract_animal_names,
+):
+    df = task_sql_extract_animal_names.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_base_sql_task_sql_file_get_dataframe_return_dataframe(
+    task_sql_extract_animal_colors,
+):
+    df = task_sql_extract_animal_colors.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+
+
+def test_base_sql_task_sql_query_parameters_used(task_extract_sql_query_with_parameters):
+    df = task_extract_sql_query_with_parameters.get_dataframe()
+    assert isinstance(df, pd.DataFrame)
+    row = df.iloc[0]
+    assert (row.foo, row.bar) == (42, "apple")
+
+
+def test_base_sql_task_run_writes_pickled_dataframe(task_sql_extract_animal_names):
+    task_sql_extract_animal_names.run()
+
+    assert os.path.exists(task_sql_extract_animal_names.path)
+    assert task_sql_extract_animal_names.get_dataframe().equals(
+        task_sql_extract_animal_names.target.read()
+    )
+    assert task_sql_extract_animal_names.complete()

@@ -13,6 +13,7 @@ pandas-stubs = "*"
 attrs = "*"
 requests = "*"
 types-requests = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 black = "*"
@@ -23,6 +24,8 @@ pre-commit = "*"
 pytest = "*"
 ruff = "*"
 requests-mock = "*"
+freezegun = "*"
+sqlalchemy-stubs = "*"
 
 [requires]
 python_version = "3.11"

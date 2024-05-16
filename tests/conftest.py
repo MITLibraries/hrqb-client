@@ -11,21 +11,32 @@ from click.testing import CliRunner
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
+from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
-from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
+from tests.fixtures.tasks.extract import (
+    ExtractAnimalColors,
+    ExtractAnimalNames,
+    SQLExtractAnimalColors,
+    SQLExtractAnimalNames,
+    SQLQueryWithParameters,
+)
 from tests.fixtures.tasks.load import LoadAnimals
 from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
 from tests.fixtures.tasks.transform import PrepareAnimals
 
 
 @pytest.fixture(autouse=True)
-def _test_env(monkeypatch, targets_directory):
+def _test_env(monkeypatch, targets_directory, data_warehouse_connection_string):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
     monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
     monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
     monkeypatch.setenv("TARGETS_DIRECTORY", str(targets_directory))
+    monkeypatch.setenv(
+        "DATA_WAREHOUSE_CONNECTION_STRING",
+        data_warehouse_connection_string,
+    )
 
 
 @pytest.fixture
@@ -111,6 +122,16 @@ def task_extract_animal_colors(pipeline_name):
 
 
 @pytest.fixture
+def task_sql_extract_animal_names(pipeline_name):
+    return SQLExtractAnimalNames(pipeline=pipeline_name)
+
+
+@pytest.fixture
+def task_sql_extract_animal_colors(pipeline_name):
+    return SQLExtractAnimalColors(pipeline=pipeline_name)
+
+
+@pytest.fixture
 def task_transform_animals(pipeline_name):
     return PrepareAnimals(pipeline=pipeline_name)
 
@@ -128,6 +149,11 @@ def task_pipeline_animals(pipeline_name):
 @pytest.fixture
 def task_pipeline_animals_debug(pipeline_name):
     return AnimalsDebug()
+
+
+@pytest.fixture
+def task_extract_sql_query_with_parameters(pipeline_name):
+    return SQLQueryWithParameters(pipeline=pipeline_name)
 
 
 @pytest.fixture
@@ -263,3 +289,13 @@ def quickbase_load_task_with_parent_data(mocked_transform_pandas_target):
             return mocked_transform_pandas_target
 
     return LoadTaskWithData
+
+
+@pytest.fixture
+def data_warehouse_connection_string():
+    return "oracle+oracledb://user1:pass1@example.org:1521/ABCDE"
+
+
+@pytest.fixture
+def sqlite_dwclient():
+    return DWClient(connection_string="sqlite:///:memory:", engine_parameters={})
