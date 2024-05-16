@@ -2,7 +2,7 @@
 
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import pandas as pd
 import requests
@@ -151,3 +151,49 @@ class QBClient:
                     raise QBFieldNotFoundError(message)
             mapped_records.append(mapped_record)
         return mapped_records
+
+    def query_records(self, query: dict) -> dict:
+        """Query for Table Records.
+
+        https://developer.quickbase.com/operation/runQuery
+        """
+        return self.make_request(requests.post, "records/query", json=query)
+
+    def query_records_mapped_fields_iter(self, query: dict) -> Iterator[dict]:
+        """Query for records, yielding records with fields mapped to their labels."""
+        response = self.make_request(requests.post, "records/query", json=query)
+        field_map = {f["id"]: f["label"] for f in response["fields"]}
+        for record in response["data"]:
+            yield {
+                field_map[int(field_id)]: field["value"]
+                for field_id, field in record.items()
+            }
+
+    def get_table_as_df(
+        self,
+        table_id: str,
+        fields: list | None = None,
+    ) -> pd.DataFrame:
+        """Retrieve all records for a table as a DataFrame.
+
+        If arg 'fields' if passed, results will be limited to only those fields from the
+        table.
+
+        Additionally, by relying on self.query_records_mapped_fields_iter() to iteratively
+        yield records, this method is safe for large Quickbase tables.
+        """
+        table_fields_df = self.get_table_fields(table_id)
+        if fields:
+            table_fields_df = table_fields_df[table_fields_df.label.isin(fields)]
+
+        records = self.query_records_mapped_fields_iter(
+            {
+                "from": table_id,
+                "select": list(table_fields_df.id),
+            }
+        )
+
+        return pd.DataFrame(
+            records,
+            columns=table_fields_df.label,
+        )

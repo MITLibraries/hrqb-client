@@ -5,6 +5,7 @@ from luigi.execution_summary import LuigiRunResult  # type: ignore[import-untype
 
 from hrqb.config import Config
 
+
 def run_pipeline(pipeline_task: luigi.WrapperTask) -> LuigiRunResult:
     """Function to run a HRQBPipelineTask via luigi runner."""
     return luigi.build(

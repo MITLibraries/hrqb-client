@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from unittest import mock
 
 import luigi
 import pandas as pd
@@ -275,6 +276,72 @@ def mocked_qb_api_upsert(
         json=api_response,
     )
     return api_response
+
+
+@pytest.fixture
+def mocked_query_all_fields_payload():
+    return {
+        "from": "bck7gp3q2",
+        "select": [6, 7, 8],
+    }
+
+
+@pytest.fixture
+def mocked_query_some_fields_payload():
+    return {
+        "from": "bck7gp3q2",
+        "select": [6, 7],
+    }
+
+
+@pytest.fixture
+def mocked_qb_api_runQuery_select_all_fields(
+    qbclient, mocked_table_id, mocked_query_all_fields_payload, global_requests_mock
+):
+    url = f"{qbclient.api_base}/records/query"
+    with open("tests/fixtures/qb_api_responses/runQuery_all_fields.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "POST",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_query_all_fields_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
+def mocked_qb_api_runQuery_select_some_fields(
+    qbclient, mocked_table_id, mocked_query_some_fields_payload, global_requests_mock
+):
+    url = f"{qbclient.api_base}/records/query"
+    with open("tests/fixtures/qb_api_responses/runQuery_some_fields.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "POST",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_query_some_fields_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
+def mocked_query_table_fields():
+    return pd.DataFrame(
+        [
+            {"label": "Full Name", "id": 6},
+            {"label": "Amount", "id": 7},
+            {"label": "Date time", "id": 8},
+        ]
+    )
+
+
+@pytest.fixture
+def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
+    with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
+        mocked_table_fields.return_value = mocked_query_table_fields
+        yield qbclient
 
 
 @pytest.fixture

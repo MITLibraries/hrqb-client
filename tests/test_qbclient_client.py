@@ -106,3 +106,58 @@ def test_qbclient_upsert_records_success(
     mocked_upsert_payload,
 ):
     assert qbclient.upsert_records(mocked_upsert_payload) == mocked_qb_api_upsert
+
+
+def test_qbclient_query_records_all_fields(
+    qbclient, mocked_query_all_fields_payload, mocked_qb_api_runQuery_select_all_fields
+):
+    assert (
+        qbclient.query_records(mocked_query_all_fields_payload)
+        == mocked_qb_api_runQuery_select_all_fields
+    )
+
+
+def test_qbclient_query_records_some_fields(
+    qbclient, mocked_query_some_fields_payload, mocked_qb_api_runQuery_select_some_fields
+):
+    assert (
+        qbclient.query_records(mocked_query_some_fields_payload)
+        == mocked_qb_api_runQuery_select_some_fields
+    )
+
+
+def test_qbclient_query_records_mapped_fields_iter_all_fields(
+    qbclient, mocked_query_all_fields_payload, mocked_qb_api_runQuery_select_all_fields
+):
+    records = list(
+        qbclient.query_records_mapped_fields_iter(mocked_query_all_fields_payload)
+    )
+    assert records == [
+        {"Full Name": "Andre Harris", "Date time": "2019-12-18T08:00:00Z", "Amount": 10}
+    ]
+
+
+def test_qbclient_query_records_mapped_fields_iter_some_fields(
+    qbclient, mocked_query_some_fields_payload, mocked_qb_api_runQuery_select_some_fields
+):
+    records = list(
+        qbclient.query_records_mapped_fields_iter(mocked_query_some_fields_payload)
+    )
+    assert records == [{"Full Name": "Andre Harris", "Amount": 10}]
+
+
+def test_qbclient_get_table_as_df_all_fields(qbclient_with_mocked_table_fields):
+    records_df = qbclient_with_mocked_table_fields.get_table_as_df("bck7gp3q2")
+    assert isinstance(records_df, pd.DataFrame)
+    assert list(records_df.columns) == ["Full Name", "Amount", "Date time"]
+    assert records_df.iloc[0]["Full Name"] == "Andre Harris"
+
+
+def test_qbclient_get_table_as_df_some_fields(qbclient_with_mocked_table_fields):
+    fields = ["Full Name", "Amount"]
+    records_df = qbclient_with_mocked_table_fields.get_table_as_df(
+        "bck7gp3q2",
+        fields=fields,
+    )
+    assert list(records_df.columns) == fields
+    assert "Date time" not in records_df.columns

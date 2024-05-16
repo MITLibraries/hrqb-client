@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "6": {
+        "value": "Andre Harris"
+      },
+      "7": {
+        "value": 10
+      }
+    }
+  ],
+  "fields": [
+    {
+      "id": 6,
+      "label": "Full Name",
+      "type": "text"
+    },
+    {
+      "id": 7,
+      "label": "Amount",
+      "type": "numeric"
+    }
+  ],
+  "metadata": {
+    "totalRecords": 1,
+    "numRecords": 1,
+    "numFields": 2,
+    "skip": 0
+  }
+}
