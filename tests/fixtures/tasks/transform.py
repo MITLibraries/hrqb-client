@@ -5,7 +5,6 @@ from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
 
 
 class PrepareAnimals(PandasPickleTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Transform")
     table_name = luigi.Parameter("Animals")
 

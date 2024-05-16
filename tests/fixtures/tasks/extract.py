@@ -8,7 +8,6 @@ SQLITE_CONNECTION_STRING = "sqlite:///tests/fixtures/sql_extract_task_test_data.
 
 
 class ExtractAnimalColors(PandasPickleTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Extract")
 
     def get_dataframe(self):
@@ -22,7 +21,6 @@ class ExtractAnimalColors(PandasPickleTask):
 
 
 class ExtractAnimalNames(PandasPickleTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Extract")
 
     def get_dataframe(self):
@@ -36,7 +34,6 @@ class ExtractAnimalNames(PandasPickleTask):
 
 
 class SQLExtractAnimalColors(SQLQueryExtractTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Extract")
 
     @property
@@ -52,7 +49,6 @@ class SQLExtractAnimalColors(SQLQueryExtractTask):
 
 
 class SQLExtractAnimalNames(SQLQueryExtractTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Extract")
 
     @property

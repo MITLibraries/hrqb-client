@@ -5,7 +5,6 @@ from tests.fixtures.tasks.transform import PrepareAnimals
 
 
 class LoadAnimals(QuickbaseUpsertTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Load")
     table_name = luigi.Parameter("Animals")
 
@@ -14,7 +13,6 @@ class LoadAnimals(QuickbaseUpsertTask):
 
 
 class LoadAnimalsDebug(QuickbaseUpsertTask):
-    pipeline = luigi.Parameter()
     stage = luigi.Parameter("Load")
     table_name = luigi.Parameter("Animals")
 
