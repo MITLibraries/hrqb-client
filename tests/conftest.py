@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from unittest import mock
 
 import luigi
 import pandas as pd
@@ -21,7 +22,7 @@ from tests.fixtures.tasks.extract import (
     SQLQueryWithParameters,
 )
 from tests.fixtures.tasks.load import LoadAnimals
-from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug
+from tests.fixtures.tasks.pipelines import Animals, AnimalsDebug, Creatures
 from tests.fixtures.tasks.transform import PrepareAnimals
 
 
@@ -30,6 +31,7 @@ def _test_env(monkeypatch, targets_directory, data_warehouse_connection_string):
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
+    monkeypatch.setenv("QUICKBASE_API_URL", "http://qb.example.org/v1")
     monkeypatch.setenv("QUICKBASE_API_TOKEN", "qb-api-acb123")
     monkeypatch.setenv("QUICKBASE_APP_ID", "qb-app-def456")
     monkeypatch.setenv("TARGETS_DIRECTORY", str(targets_directory))
@@ -142,18 +144,23 @@ def task_load_animals(pipeline_name):
 
 
 @pytest.fixture
-def task_pipeline_animals(pipeline_name):
+def task_pipeline_animals():
     return Animals()
 
 
 @pytest.fixture
-def task_pipeline_animals_debug(pipeline_name):
+def task_pipeline_animals_debug():
     return AnimalsDebug()
 
 
 @pytest.fixture
 def task_extract_sql_query_with_parameters(pipeline_name):
     return SQLQueryWithParameters(pipeline=pipeline_name)
+
+
+@pytest.fixture
+def task_pipeline_creatures():
+    return Creatures()
 
 
 @pytest.fixture
@@ -270,6 +277,72 @@ def mocked_qb_api_upsert(
         json=api_response,
     )
     return api_response
+
+
+@pytest.fixture
+def mocked_query_all_fields_payload():
+    return {
+        "from": "bck7gp3q2",
+        "select": [6, 7, 8],
+    }
+
+
+@pytest.fixture
+def mocked_query_some_fields_payload():
+    return {
+        "from": "bck7gp3q2",
+        "select": [6, 7],
+    }
+
+
+@pytest.fixture
+def mocked_qb_api_runQuery_select_all_fields(
+    qbclient, mocked_table_id, mocked_query_all_fields_payload, global_requests_mock
+):
+    url = f"{qbclient.api_base}/records/query"
+    with open("tests/fixtures/qb_api_responses/runQuery_all_fields.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "POST",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_query_all_fields_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
+def mocked_qb_api_runQuery_select_some_fields(
+    qbclient, mocked_table_id, mocked_query_some_fields_payload, global_requests_mock
+):
+    url = f"{qbclient.api_base}/records/query"
+    with open("tests/fixtures/qb_api_responses/runQuery_some_fields.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "POST",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_query_some_fields_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
+def mocked_query_table_fields():
+    return pd.DataFrame(
+        [
+            {"label": "Full Name", "id": 6},
+            {"label": "Amount", "id": 7},
+            {"label": "Date time", "id": 8},
+        ]
+    )
+
+
+@pytest.fixture
+def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
+    with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
+        mocked_table_fields.return_value = mocked_query_table_fields
+        yield qbclient
 
 
 @pytest.fixture

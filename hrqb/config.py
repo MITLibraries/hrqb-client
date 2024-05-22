@@ -10,6 +10,7 @@ class Config:
         "WORKSPACE",
         "SENTRY_DSN",
         "LUIGI_CONFIG_PATH",
+        "QUICKBASE_API_URL",
         "QUICKBASE_API_TOKEN",
         "QUICKBASE_APP_ID",
         "DATA_WAREHOUSE_CONNECTION_STRING",
@@ -17,6 +18,7 @@ class Config:
     OPTIONAL_ENV_VARS = (
         "DYLD_LIBRARY_PATH",
         "TARGETS_DIRECTORY",
+        "LUIGI_NUM_WORKERS",
     )
 
     def check_required_env_vars(self) -> None:

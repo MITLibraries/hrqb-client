@@ -196,6 +196,10 @@ class QuickbaseUpsertTask(HRQBTask):
         Because Load Tasks (upserting data to Quickbase) are so uniform, this run method
         can be defined on this base class.  All data required for this operation exists
         on the Task: data from parent Transform class and QB table name.
+
+        Partial successes are possible for Quickbase upserts.  This method will log
+        warnings when detected in API response, but task will be considered complete and
+        ultimately successful.
         """
         records = self.get_records()
 
@@ -207,6 +211,11 @@ class QuickbaseUpsertTask(HRQBTask):
             merge_field=None,
         )
         results = qbclient.upsert_records(upsert_payload)
+
+        # log warning, but consider task complete if some errors present in API response
+        if api_errors := results.get("metadata", {}).get("lineErrors"):
+            message = f"Quickbase API call completed but had errors: {api_errors}"
+            logger.warning(message)
 
         self.target.write(results)
 
@@ -229,9 +238,14 @@ class HRQBPipelineTask(luigi.WrapperTask):
     CLI.
     """
 
+    parent_pipeline_name = luigi.OptionalStrParameter(default=None, significant=False)
+
     @property
     def pipeline_name(self) -> str:
-        return self.__class__.__name__
+        output = self.__class__.__name__
+        if self.parent_pipeline_name:
+            output = f"{self.parent_pipeline_name}__{output}"
+        return output
 
     @staticmethod
     def init_task_from_class_path(

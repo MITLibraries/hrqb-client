@@ -1,4 +1,7 @@
+# ruff: noqa: PLR2004
+
 import os
+from unittest import mock
 
 import luigi
 import pandas as pd
@@ -66,3 +69,19 @@ def test_quickbase_table_target_write_read_success(tmpdir, quickbase_api_write_r
 
     assert isinstance(target.read(), dict)
     assert target.read() == quickbase_api_write_receipt
+
+
+def test_pandas_pickle_target_records_count(task_extract_animal_names_target):
+    assert task_extract_animal_names_target.records_count == 2
+    mocked_target = task_extract_animal_names_target
+    with mock.patch.object(mocked_target, "exists") as mocked_exists:
+        mocked_exists.return_value = False
+        assert mocked_target.records_count is None
+
+
+def test_quickbase_table_target_records_count(task_load_animals_target):
+    assert task_load_animals_target.records_count == 2
+    mocked_target = task_load_animals_target
+    with mock.patch.object(mocked_target, "exists") as mocked_exists:
+        mocked_exists.return_value = False
+        assert mocked_target.records_count is None
