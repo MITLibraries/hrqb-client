@@ -50,28 +50,19 @@ def ping(ctx: click.Context) -> None:
 @click.pass_context
 def test_connections(ctx: click.Context) -> None:
     """Test connectivity with Data Warehouse and Quickbase."""
-    dw_success = False
-    qb_success = False
+    all_success = True
+    for name, client in [("Data Warehouse", DWClient), ("Quickbase", QBClient)]:
+        try:
+            client().test_connection()
+            message = f"{name} connection successful"
+            logger.debug(message)
+        except Exception as exc:  # noqa: BLE001
+            all_success = False
+            message = f"{name} connection failed: {exc}"
+            logger.error(message)  # noqa: TRY400
 
-    try:
-        if DWClient().test_connection():
-            logger.debug("Data Warehouse connection successful")
-            dw_success = True
-    except Exception as exc:  # noqa: BLE001
-        message = f"Data Warehouse connection failed: {exc}"
-        logger.error(message)  # noqa: TRY400
-    try:
-        if QBClient().test_connection():
-            logger.debug("Quickbase connection successful")
-            qb_success = True
-    except Exception as exc:  # noqa: BLE001
-        message = f"Quickbase connection failed: {exc}"
-        logger.error(message)  # noqa: TRY400
-
-    if dw_success and qb_success:
-        logger.info("All connections OK")
-    else:
-        logger.info("One or more connections failed")
+    message = "All connections OK" if all_success else "One or more connections failed"
+    logger.info(message)
 
     logger.info(
         "Total elapsed: %s",
