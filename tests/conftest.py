@@ -27,7 +27,9 @@ from tests.fixtures.tasks.transform import PrepareAnimals
 
 
 @pytest.fixture(autouse=True)
-def _test_env(monkeypatch, targets_directory, data_warehouse_connection_string):
+def _test_env(request, monkeypatch, targets_directory, data_warehouse_connection_string):
+    if request.node.get_closest_marker("integration"):
+        return
     monkeypatch.setenv("SENTRY_DSN", "None")
     monkeypatch.setenv("WORKSPACE", "test")
     monkeypatch.setenv("LUIGI_CONFIG_PATH", "hrqb/luigi.cfg")
@@ -205,9 +207,12 @@ def qbclient():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def global_requests_mock():
-    with requests_mock.Mocker() as m:
-        yield m
+def global_requests_mock(request):
+    if any(item.get_closest_marker("integration") for item in request.node.items):
+        yield
+    else:
+        with requests_mock.Mocker() as m:
+            yield m
 
 
 @pytest.fixture
@@ -372,3 +377,31 @@ def data_warehouse_connection_string():
 @pytest.fixture
 def sqlite_dwclient():
     return DWClient(connection_string="sqlite:///:memory:", engine_parameters={})
+
+
+@pytest.fixture
+def _qbclient_connection_test_success():
+    with mock.patch.object(QBClient, "test_connection") as mocked_connection_test:
+        mocked_connection_test.return_value = True
+        yield
+
+
+@pytest.fixture
+def _dwclient_connection_test_success():
+    with mock.patch.object(DWClient, "test_connection") as mocked_connection_test:
+        mocked_connection_test.return_value = True
+        yield
+
+
+@pytest.fixture
+def _dwclient_connection_test_raise_exception():
+    with mock.patch.object(DWClient, "test_connection") as mocked_connection_test:
+        mocked_connection_test.side_effect = Exception("Intentional Error Here")
+        yield
+
+
+@pytest.fixture
+def _qbclient_connection_test_raise_exception():
+    with mock.patch.object(QBClient, "test_connection") as mocked_connection_test:
+        mocked_connection_test.side_effect = Exception("Intentional Error Here")
+        yield

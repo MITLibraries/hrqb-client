@@ -6,6 +6,7 @@ from unittest import mock
 import pandas as pd
 import pytest
 import requests
+from requests.exceptions import HTTPError
 from requests.models import Response
 
 from hrqb.exceptions import QBFieldNotFoundError
@@ -175,3 +176,22 @@ def test_qbclient_api_non_2xx_response_error(qbclient):
             requests.RequestException, match="Quickbase API error - status 400"
         ):
             assert qbclient.make_request(requests.get, "/always/fail")
+
+
+def test_qbclient_test_connection_success(qbclient):
+    assert qbclient.test_connection()
+
+
+def test_qbclient_test_connection_connection_error(qbclient):
+    error_message = "Invalid API token"
+    with mock.patch.object(type(qbclient), "make_request") as mocked_make_request:
+        mocked_make_request.side_effect = HTTPError(error_message)
+        with pytest.raises(HTTPError, match=error_message):
+            qbclient.test_connection()
+
+
+def test_qbclient_test_connection_response_error(qbclient):
+    with mock.patch.object(type(qbclient), "make_request") as mocked_make_request:
+        mocked_make_request.return_value = {"msg": "this is not expected"}
+        with pytest.raises(ValueError, match="API returned unexpected response"):
+            qbclient.test_connection()

@@ -8,6 +8,8 @@ from hrqb.base.task import HRQBPipelineTask
 from hrqb.config import Config, configure_logger, configure_sentry
 from hrqb.tasks.pipelines import run_pipeline
 from hrqb.utils import click_argument_to_dict
+from hrqb.utils.data_warehouse import DWClient
+from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,41 @@ def main(ctx: click.Context, verbose: bool) -> None:  # noqa: FBT001
 @click.pass_context
 def ping(ctx: click.Context) -> None:
     logger.debug("pong")
+    logger.info(
+        "Total elapsed: %s",
+        str(
+            timedelta(seconds=perf_counter() - ctx.obj["START_TIME"]),
+        ),
+    )
+
+
+@main.command()
+@click.pass_context
+def test_connections(ctx: click.Context) -> None:
+    """Test connectivity with Data Warehouse and Quickbase."""
+    dw_success = False
+    qb_success = False
+
+    try:
+        if DWClient().test_connection():
+            logger.debug("Data Warehouse connection successful")
+            dw_success = True
+    except Exception as exc:  # noqa: BLE001
+        message = f"Data Warehouse connection failed: {exc}"
+        logger.error(message)  # noqa: TRY400
+    try:
+        if QBClient().test_connection():
+            logger.debug("Quickbase connection successful")
+            qb_success = True
+    except Exception as exc:  # noqa: BLE001
+        message = f"Quickbase connection failed: {exc}"
+        logger.error(message)  # noqa: TRY400
+
+    if dw_success and qb_success:
+        logger.info("All connections OK")
+    else:
+        logger.info("One or more connections failed")
+
     logger.info(
         "Total elapsed: %s",
         str(
