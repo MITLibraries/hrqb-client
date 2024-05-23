@@ -1,8 +1,10 @@
 """hrqb.base.task"""
 
+import json
 import logging
 import os
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Iterator
 from typing import Literal
 
@@ -212,12 +214,28 @@ class QuickbaseUpsertTask(HRQBTask):
         )
         results = qbclient.upsert_records(upsert_payload)
 
-        # log warning, but consider task complete if some errors present in API response
-        if api_errors := results.get("metadata", {}).get("lineErrors"):
-            message = f"Quickbase API call completed but had errors: {api_errors}"
-            logger.warning(message)
+        self.parse_and_log_upsert_errors(results)
 
         self.target.write(results)
+
+    def parse_and_log_upsert_errors(self, api_response: dict) -> None:
+        """Parse Quickbase upsert response and log any errors.
+
+        Errors are returned for each record upserted, for each field with issues.  This is
+        an unnecessary level of grain for logging, so the field error types are counted
+        across all records and logged.  This gives a high level overview of fields that
+        are failing, and how often, where further debugging would involve looking at the
+        response directly in the task output.
+        """
+        if api_errors := api_response.get("metadata", {}).get("lineErrors"):
+            api_error_counts: dict[str, int] = defaultdict(int)
+            for errors in api_errors.values():
+                for error in errors:
+                    api_error_counts[error] += 1
+            message = "Quickbase API call completed but had errors: " + json.dumps(
+                api_error_counts
+            )
+            logger.warning(message)
 
 
 class HRQBPipelineTask(luigi.WrapperTask):
