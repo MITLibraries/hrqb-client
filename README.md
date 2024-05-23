@@ -111,12 +111,13 @@ Options:
 
 ### `pipeline run`
 ```text
-Usage: run [OPTIONS]
-
-  Run a Pipeline.
+Usage: -c pipeline run [OPTIONS]
 
 Options:
-  --remove-data  Pass to automatically removed Task artifacts after run.
-  --help         Show this message and exit.
+  --cleanup              Pass to automatically removed Task artifacts after
+                         run.
+  -t, --start-task TEXT  Start from a specific task in pipeline, running all
+                         required parent tasks as well.
+  -h, --help             Show this message and exit.
 ```
 

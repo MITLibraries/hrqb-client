@@ -6,7 +6,7 @@ import click
 
 from hrqb.base.task import HRQBPipelineTask
 from hrqb.config import Config, configure_logger, configure_sentry
-from hrqb.tasks.pipelines import run_pipeline
+from hrqb.tasks.pipelines import run_pipeline, run_task
 from hrqb.utils import click_argument_to_dict
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
@@ -137,13 +137,36 @@ def remove_data(ctx: click.Context) -> None:
     is_flag=True,
     help="Pass to automatically removed Task artifacts after run.",
 )
+@click.option(
+    "-t",
+    "--start-task",
+    type=str,
+    required=False,
+    help="Start from a specific task in pipeline, running all required parent tasks as "
+    "well.",
+)
 @click.pass_context
 def run(
     ctx: click.Context,
     cleanup: bool,  # noqa: FBT001
+    start_task: str,
 ) -> None:
     pipeline_task = ctx.obj["PIPELINE_TASK"]
-    run_results = run_pipeline(pipeline_task)
+
+    # begin from specific task if specified
+    if start_task:
+        task = pipeline_task.get_task(start_task)
+        if not task:
+            message = f"Could not find task: {start_task}"
+            logger.error(message)
+            return
+        message = f"Start task loaded: {task}"
+        logger.info(message)
+        run_results = run_task(task)
+    # else, begin with pipeline task as root task
+    else:
+        run_results = run_pipeline(pipeline_task)
+
     message = f"Pipeline run result: {run_results.status.name}"
     logger.info(message)
     logger.info(pipeline_task.pipeline_as_ascii())

@@ -281,6 +281,18 @@ class HRQBPipelineTask(luigi.WrapperTask):
             if hasattr(task, "target"):
                 yield level, task.target
 
+    def get_task(self, task_class_or_name: str | type) -> luigi.Task | None:
+        """Get an instantiated child Task, by name, from this parent Pipeline task."""
+        task_class_name = (
+            task_class_or_name.__name__
+            if isinstance(task_class_or_name, type)
+            else task_class_or_name
+        )
+        for _, task in self.pipeline_tasks_iter():
+            if task.__class__.__name__ == task_class_name:
+                return task
+        return None
+
     def pipeline_as_ascii(self) -> str:
         """Return an ASCII representation of this Pipeline Task."""
         output = ""

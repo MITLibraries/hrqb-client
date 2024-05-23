@@ -137,6 +137,47 @@ def test_cli_pipeline_run_and_remove_data_success(caplog, runner):
         assert text_in_logs_or_stdout(line, caplog, result)
 
 
+def test_cli_pipeline_run_start_task_success(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=AnimalsDebug",
+        "run",
+        "--start-task=ExtractAnimalNames",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
+        "Start task loaded: ExtractAnimalNames",
+        "Pipeline run result: SUCCESS",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+def test_cli_pipeline_run_start_task_not_found_error(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=AnimalsDebug",
+        "run",
+        "--start-task=BadTask",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
+        "Could not find task: BadTask",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
 @pytest.mark.usefixtures(
     "_dwclient_connection_test_success", "_qbclient_connection_test_success"
 )
