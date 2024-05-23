@@ -6,9 +6,9 @@ import click
 
 from hrqb.base.task import HRQBPipelineTask
 from hrqb.config import Config, configure_logger, configure_sentry
-from hrqb.tasks.pipelines import run_pipeline, run_task
 from hrqb.utils import click_argument_to_dict
 from hrqb.utils.data_warehouse import DWClient
+from hrqb.utils.luigi import run_pipeline, run_task
 from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)

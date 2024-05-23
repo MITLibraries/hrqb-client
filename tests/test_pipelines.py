@@ -1,7 +1,7 @@
 import luigi
 import pytest
 
-from hrqb.tasks.pipelines import run_pipeline
+from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.full_annotated_pipeline import (
     AlphaNumeric,
     CombineLettersAndNumbers,
