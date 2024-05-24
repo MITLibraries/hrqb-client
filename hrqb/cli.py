@@ -118,57 +118,88 @@ main.add_command(pipeline)
 @pipeline.command()
 @click.pass_context
 def status(ctx: click.Context) -> None:
+    """Get status of a pipeline's tasks."""
     pipeline_task = ctx.obj["PIPELINE_TASK"]
     logger.info(pipeline_task.pipeline_as_ascii())
 
 
 @pipeline.command()
+@click.option(
+    "-t",
+    "--task",
+    "task_name",
+    type=str,
+    required=False,
+    help="Remove target data from only this task.",
+)
 @click.pass_context
-def remove_data(ctx: click.Context) -> None:
+def remove_data(ctx: click.Context, task_name: str) -> None:
+    """Remove target data from pipeline tasks."""
     pipeline_task = ctx.obj["PIPELINE_TASK"]
-    logger.warning("Removing all Pipeline Tasks Targets (data).")
-    logger.info(pipeline_task.remove_pipeline_targets())
-    logger.info("Successfully removed pipeline artifacts.")
+
+    # remove specific task target data
+    if task_name:
+        task = pipeline_task.get_task(task_name)
+        if not task:
+            message = f"Could not find task: {task_name}"
+            logger.error(message)
+            return
+        message = f"Task loaded: {task}"
+        logger.info(message)
+        task.target.remove()
+        message = f"Target {task.target} successfully removed"
+        logger.debug(message)
+
+    # default, remove all pipeline tasks target data
+    else:
+        pipeline_task.remove_pipeline_targets()
+
+    logger.info("Successfully removed target data(s).")
 
 
 @pipeline.command()
 @click.option(
     "--cleanup",
     is_flag=True,
-    help="Pass to automatically removed Task artifacts after run.",
+    help="Remove target data for all tasks in pipeline after run.",
 )
 @click.option(
     "-t",
-    "--start-task",
+    "--task",
+    "task_name",
     type=str,
     required=False,
     help="Start from a specific task in pipeline, running all required parent tasks as "
-    "well.",
+    "well.  NOTE: if used in combination with --cleanup, only this task will have its "
+    "target data removed.",
 )
 @click.pass_context
 def run(
     ctx: click.Context,
     cleanup: bool,  # noqa: FBT001
-    start_task: str,
+    task_name: str,
 ) -> None:
+    """Run a pipeline."""
     pipeline_task = ctx.obj["PIPELINE_TASK"]
 
     # begin from specific task if specified
-    if start_task:
-        task = pipeline_task.get_task(start_task)
+    if task_name:
+        task = pipeline_task.get_task(task_name)
         if not task:
-            message = f"Could not find task: {start_task}"
+            message = f"Could not find task: {task_name}"
             logger.error(message)
             return
-        message = f"Start task loaded: {task}"
+        message = f"Task loaded: {task}"
         logger.info(message)
         run_results = run_task(task)
-    # else, begin with pipeline task as root task
+
+    # else, begin with pipeline task
     else:
         run_results = run_pipeline(pipeline_task)
 
     message = f"Pipeline run result: {run_results.status.name}"
     logger.info(message)
     logger.info(pipeline_task.pipeline_as_ascii())
+
     if cleanup:
-        ctx.invoke(remove_data)
+        ctx.invoke(remove_data, task_name=task_name)

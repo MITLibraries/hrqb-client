@@ -87,24 +87,25 @@ Commands:
 
 ### `pipeline status`
 ```text
-Usage: status [OPTIONS]
+Usage: -c pipeline status [OPTIONS]
 
-  Return the status of a Pipeline.
+  Get status of a pipeline's tasks.
 
 Options:
-  --help  Show this message and exit.
+  -h, --help  Show this message and exit.
 ```
 <br>
 
 
 ### `pipeline remove-data`
 ```text
-Usage: remove-data [OPTIONS]
+Usage: -c pipeline remove-data [OPTIONS]
 
-  Remove all Task output data (Targets) for a pipeline.
+  Remove target data from pipeline tasks.
 
 Options:
-  --help  Show this message and exit.
+  -t, --task TEXT  Remove target data from only this task.
+  -h, --help       Show this message and exit.
 ```
 <br>
 
@@ -113,11 +114,14 @@ Options:
 ```text
 Usage: -c pipeline run [OPTIONS]
 
+  Run a pipeline.
+
 Options:
-  --cleanup              Pass to automatically removed Task artifacts after
-                         run.
-  -t, --start-task TEXT  Start from a specific task in pipeline, running all
-                         required parent tasks as well.
-  -h, --help             Show this message and exit.
+  --cleanup        Remove target data for all tasks in pipeline after run.
+  -t, --task TEXT  Start from a specific task in pipeline, running all
+                   required parent tasks as well.  NOTE: if used in
+                   combination with --cleanup, only this task will have its
+                   target data removed.
+  -h, --help       Show this message and exit.
 ```
 
