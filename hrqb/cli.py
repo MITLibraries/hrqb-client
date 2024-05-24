@@ -95,21 +95,43 @@ def test_connections(ctx: click.Context) -> None:
     help="Comma separated list of luigi Parameters to pass to HRQBPipelineTask, "
     "e.g. 'Param1=foo,Param2=bar'.",
 )
+@click.option(
+    "-t",
+    "--task",
+    "target_task",
+    type=str,
+    required=False,
+    help="Select a target task for pipeline sub-commands (e.g. remove-data, run, etc.)",
+)
 @click.pass_context
 def pipeline(
     ctx: click.Context,
     pipeline: str,
     pipeline_module: str,
     pipeline_parameters: dict,
+    target_task: str,
 ) -> None:
+    # load pipeline task
     pipeline_task = HRQBPipelineTask.init_task_from_class_path(
         pipeline,
         task_class_module=pipeline_module,
         pipeline_parameters=pipeline_parameters,
     )
-    message = f"Successfully loaded pipeline: '{pipeline_module}.{pipeline}'"
     ctx.obj["PIPELINE_TASK"] = pipeline_task
+    message = f"Successfully loaded pipeline: '{pipeline_module}.{pipeline}'"
     logger.debug(message)
+
+    # load target pipeline task if present
+    pipeline_target_task = None
+    if target_task:
+        pipeline_target_task = pipeline_task.get_task(target_task)
+        if not pipeline_target_task:
+            message = f"Could not find target task: {target_task}"
+            logger.error(message)
+            ctx.exit(0)
+        message = f"Successfully loaded target task: {pipeline_target_task}"
+        logger.info(message)
+    ctx.obj["PIPELINE_TARGET_TASK"] = pipeline_target_task
 
 
 main.add_command(pipeline)
@@ -124,33 +146,20 @@ def status(ctx: click.Context) -> None:
 
 
 @pipeline.command()
-@click.option(
-    "-t",
-    "--task",
-    "task_name",
-    type=str,
-    required=False,
-    help="Remove target data from only this task.",
-)
 @click.pass_context
-def remove_data(ctx: click.Context, task_name: str) -> None:
-    """Remove target data from pipeline tasks."""
+def remove_data(ctx: click.Context) -> None:
+    """Remove target data from pipeline tasks.
+
+    If argument --task is passed to parent 'pipeline' command, only this task will have
+    its target data removed.
+    """
     pipeline_task = ctx.obj["PIPELINE_TASK"]
+    pipeline_target_task = ctx.obj["PIPELINE_TARGET_TASK"]
 
-    # remove specific task target data
-    if task_name:
-        task = pipeline_task.get_task(task_name)
-        if not task:
-            message = f"Could not find task: {task_name}"
-            logger.error(message)
-            return
-        message = f"Task loaded: {task}"
-        logger.info(message)
-        task.target.remove()
-        message = f"Target {task.target} successfully removed"
+    if pipeline_target_task:
+        pipeline_target_task.target.remove()
+        message = f"Target {pipeline_target_task.target} successfully removed"
         logger.debug(message)
-
-    # default, remove all pipeline tasks target data
     else:
         pipeline_task.remove_pipeline_targets()
 
@@ -163,37 +172,21 @@ def remove_data(ctx: click.Context, task_name: str) -> None:
     is_flag=True,
     help="Remove target data for all tasks in pipeline after run.",
 )
-@click.option(
-    "-t",
-    "--task",
-    "task_name",
-    type=str,
-    required=False,
-    help="Start from a specific task in pipeline, running all required parent tasks as "
-    "well.  NOTE: if used in combination with --cleanup, only this task will have its "
-    "target data removed.",
-)
 @click.pass_context
 def run(
     ctx: click.Context,
     cleanup: bool,  # noqa: FBT001
-    task_name: str,
 ) -> None:
-    """Run a pipeline."""
+    """Run a pipeline.
+
+    If argument --task is passed to parent 'pipeline' command, only this task, and the
+    tasks it requires, will run.
+    """
     pipeline_task = ctx.obj["PIPELINE_TASK"]
+    pipeline_target_task = ctx.obj["PIPELINE_TARGET_TASK"]
 
-    # begin from specific task if specified
-    if task_name:
-        task = pipeline_task.get_task(task_name)
-        if not task:
-            message = f"Could not find task: {task_name}"
-            logger.error(message)
-            return
-        message = f"Task loaded: {task}"
-        logger.info(message)
-        run_results = run_task(task)
-
-    # else, begin with pipeline task
+    if pipeline_target_task:
+        run_results = run_task(pipeline_target_task)
     else:
         run_results = run_pipeline(pipeline_task)
 
@@ -202,4 +195,4 @@ def run(
     logger.info(pipeline_task.pipeline_as_ascii())
 
     if cleanup:
-        ctx.invoke(remove_data, task_name=task_name)
+        ctx.invoke(remove_data)

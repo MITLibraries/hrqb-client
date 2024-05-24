@@ -100,12 +100,12 @@ def test_cli_pipeline_remove_data_task_not_found(
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=Animals",
-        "remove-data",
         "--task=BadTask",
+        "remove-data",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
-    assert "Could not find task: BadTask" in caplog.text
+    assert "Could not find target task: BadTask" in caplog.text
 
 
 def test_cli_pipeline_run_success(caplog, runner):
@@ -161,14 +161,14 @@ def test_cli_pipeline_run_start_task_success(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "run",
         "--task=ExtractAnimalNames",
+        "run",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Task loaded: ExtractAnimalNames",
+        "Successfully loaded target task: ExtractAnimalNames",
         "Pipeline run result: SUCCESS",
     ]
     for line in lines:
@@ -182,15 +182,15 @@ def test_cli_pipeline_run_start_task_cleanup_success(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "run",
         "--task=ExtractAnimalNames",
+        "run",
         "--cleanup",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Task loaded: ExtractAnimalNames",
+        "Successfully loaded target task: ExtractAnimalNames",
         "ExtractAnimalNames.pickle successfully removed",
         "Pipeline run result: SUCCESS",
     ]
@@ -205,14 +205,14 @@ def test_cli_pipeline_run_start_task_not_found_error(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "run",
         "--task=BadTask",
+        "run",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Could not find task: BadTask",
+        "Could not find target task: BadTask",
     ]
     for line in lines:
         assert text_in_logs_or_stdout(line, caplog, result)

@@ -67,20 +67,22 @@ Options:
 Usage: -c pipeline [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  -p, --pipeline TEXT          Pipeline Task class name imported from
+  -p, --pipeline TEXT          Pipeline Task class name to be imported from
                                configured pipeline module, e.g. 'MyPipeline'
                                [required]
   -pm, --pipeline-module TEXT  Module where Pipeline Task class is defined.
                                Default: 'hrqb.tasks.pipelines'.
-  --pipeline-parameters TEXT   Comma separated list luigi Parameters to pass
-                               to HRQBPipelineTask, e.g.
+  --pipeline-parameters TEXT   Comma separated list of luigi Parameters to
+                               pass to HRQBPipelineTask, e.g.
                                'Param1=foo,Param2=bar'.
+  -t, --task TEXT              Select a target task for pipeline sub-commands
+                               (e.g. remove-data, run, etc.)
   -h, --help                   Show this message and exit.
 
 Commands:
-  remove-data
-  run
-  status
+  remove-data  Remove target data from pipeline tasks.
+  run          Run a pipeline.
+  status       Get status of a pipeline's tasks.
 ```
 <br>
 
@@ -103,9 +105,11 @@ Usage: -c pipeline remove-data [OPTIONS]
 
   Remove target data from pipeline tasks.
 
+  If argument --task is passed to parent 'pipeline' command, only this task
+  will have its target data removed.
+
 Options:
-  -t, --task TEXT  Remove target data from only this task.
-  -h, --help       Show this message and exit.
+  -h, --help  Show this message and exit.
 ```
 <br>
 
@@ -116,12 +120,11 @@ Usage: -c pipeline run [OPTIONS]
 
   Run a pipeline.
 
+  If argument --task is passed to parent 'pipeline' command, only this task,
+  and the tasks it requires, will run.
+
 Options:
-  --cleanup        Remove target data for all tasks in pipeline after run.
-  -t, --task TEXT  Start from a specific task in pipeline, running all
-                   required parent tasks as well.  NOTE: if used in
-                   combination with --cleanup, only this task will have its
-                   target data removed.
-  -h, --help       Show this message and exit.
+  --cleanup   Remove target data for all tasks in pipeline after run.
+  -h, --help  Show this message and exit.
 ```
 
