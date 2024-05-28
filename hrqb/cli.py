@@ -72,7 +72,7 @@ def test_connections(ctx: click.Context) -> None:
     )
 
 
-@click.group()
+@main.group()
 @click.option(
     "-p",
     "--pipeline",
@@ -90,6 +90,7 @@ def test_connections(ctx: click.Context) -> None:
     default="hrqb.tasks.pipelines",
 )
 @click.option(
+    "-pp",
     "--pipeline-parameters",
     callback=click_argument_to_dict,
     help="Comma separated list of luigi Parameters to pass to HRQBPipelineTask, "
@@ -132,9 +133,6 @@ def pipeline(
         message = f"Successfully loaded target task: {pipeline_target_task}"
         logger.info(message)
     ctx.obj["PIPELINE_TARGET_TASK"] = pipeline_target_task
-
-
-main.add_command(pipeline)
 
 
 @pipeline.command()
