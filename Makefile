@@ -89,13 +89,3 @@ publish-stage: ## Only use in an emergency
 	docker login -u AWS -p $$(aws ecr get-login-password --region us-east-1) $(ECR_URL_STAGE)
 	docker push $(ECR_URL_STAGE):latest
 	docker push $(ECR_URL_STAGE):`git describe --always`
-
-
-## ---- Temporary Development Commands ---- ##
-
-docker-build: # build Docker container
-	docker build --platform linux/amd64 \
-	    -t hrqb-client:latest .
-
-docker-bash: # bash shell to docker container
-	docker run --entrypoint /bin/bash -it hrqb-client

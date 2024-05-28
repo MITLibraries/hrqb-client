@@ -1,3 +1,4 @@
+import pytest
 from _pytest.logging import LogCaptureFixture
 from click.testing import Result
 
@@ -131,6 +132,57 @@ def test_cli_pipeline_run_and_remove_data_success(caplog, runner):
         "AnimalsDebug__Transform__PrepareAnimals.pickle successfully removed",
         "AnimalsDebug__Extract__ExtractAnimalColors.pickle successfully removed",
         "AnimalsDebug__Extract__ExtractAnimalNames.pickle successfully removed",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+@pytest.mark.usefixtures(
+    "_dwclient_connection_test_success", "_qbclient_connection_test_success"
+)
+def test_cli_test_connections_success(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = ["--verbose", "test-connections"]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Data Warehouse connection successful",
+        "Quickbase connection successful",
+        "All connections OK",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+@pytest.mark.usefixtures(
+    "_dwclient_connection_test_raise_exception", "_qbclient_connection_test_success"
+)
+def test_cli_test_connections_data_warehouse_connection_error(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = ["--verbose", "test-connections"]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Data Warehouse connection failed: Intentional Error Here",
+        "Quickbase connection successful",
+        " One or more connections failed",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+@pytest.mark.usefixtures(
+    "_dwclient_connection_test_success", "_qbclient_connection_test_raise_exception"
+)
+def test_cli_test_connections_quickbase_connection_error(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = ["--verbose", "test-connections"]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Data Warehouse connection successful",
+        "Quickbase connection failed: Intentional Error Here",
+        "One or more connections failed",
     ]
     for line in lines:
         assert text_in_logs_or_stdout(line, caplog, result)

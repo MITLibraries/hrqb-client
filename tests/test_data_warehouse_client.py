@@ -3,6 +3,7 @@
 import pandas as pd
 import pytest
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import ArgumentError
 
 from hrqb.utils.data_warehouse import DWClient
 
@@ -72,3 +73,13 @@ def test_dwclient_execute_query_accepts_sql_parameters(sqlite_dwclient):
     )
     assert df.iloc[0].foo == foo_val
     assert df.iloc[0].bar == bar_val
+
+
+def test_dwclient_test_connection_success(sqlite_dwclient):
+    assert sqlite_dwclient.test_connection()
+
+
+def test_dwclient_test_connection_connection_error(sqlite_dwclient):
+    sqlite_dwclient.connection_string = "bad-connection://nothing"
+    with pytest.raises(ArgumentError, match="Could not parse SQLAlchemy URL from string"):
+        sqlite_dwclient.test_connection()

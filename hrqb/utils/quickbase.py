@@ -23,6 +23,18 @@ class QBClient:
     cache_results: bool = field(default=True)
     _cache: dict = field(factory=dict, repr=False)
 
+    def test_connection(self) -> bool:
+        """Test connection to Quickbase API.
+
+        Retrieves Quickbase app information and checks for known key to establish
+        successful authentication and app permissions.
+        """
+        results = self.get_app_info()
+        if results.get("id") != Config().QUICKBASE_APP_ID:
+            message = f"API returned unexpected response: {results}"
+            raise ValueError(message)
+        return True
+
     @property
     def request_headers(self) -> dict:
         return {

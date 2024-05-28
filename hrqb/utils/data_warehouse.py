@@ -1,5 +1,7 @@
 """hrqb.utils.data_warehouse"""
 
+# ruff: noqa: PLR2004
+
 import logging
 
 import pandas as pd
@@ -44,6 +46,19 @@ class DWClient:
                 "DWClient or set env var DATA_WAREHOUSE_CONNECTION_STRING."
             )
             raise AttributeError(message)
+
+    def test_connection(self) -> bool:
+        """Test connection to Data Warehouse.
+
+        Executes a simple SQL statement that should return a simple dataframe if a valid
+        connection is established.
+        """
+        if self.connection_string.startswith("sqlite"):
+            query = """select 1 as x, 2 as y"""
+        else:
+            query = """select 1 as x, 2 as y from dual"""
+        self.execute_query(query)
+        return True
 
     def init_engine(self) -> None:
         """Instantiate a SQLAlchemy engine if not already configured and set."""
