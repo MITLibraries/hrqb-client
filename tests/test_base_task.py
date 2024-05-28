@@ -10,11 +10,13 @@ import pytest
 from hrqb.base import (
     HRQBTask,
     PandasPickleTarget,
+    PandasPickleTask,
     QuickbaseTableTarget,
     SQLQueryExtractTask,
 )
 from hrqb.config import Config
 from hrqb.utils.data_warehouse import DWClient
+from tests.fixtures.tasks.extract import ExtractAnimalNames
 
 
 def test_base_task_required_parameter_pipeline(pipeline_name):
@@ -249,3 +251,17 @@ def test_base_sql_task_run_writes_pickled_dataframe(task_sql_extract_animal_name
         task_sql_extract_animal_names.target.read()
     )
     assert task_sql_extract_animal_names.complete()
+
+
+def test_base_pipeline_task_get_task_str_success(task_pipeline_animals):
+    task = task_pipeline_animals.get_task("ExtractAnimalNames")
+    assert isinstance(task, PandasPickleTask)
+
+
+def test_base_pipeline_task_get_task_class_success(task_pipeline_animals):
+    task = task_pipeline_animals.get_task(ExtractAnimalNames)
+    assert isinstance(task, PandasPickleTask)
+
+
+def test_base_pipeline_task_get_task_not_found_return_none(task_pipeline_animals):
+    assert not task_pipeline_animals.get_task("BadTask")

@@ -6,9 +6,9 @@ import click
 
 from hrqb.base.task import HRQBPipelineTask
 from hrqb.config import Config, configure_logger, configure_sentry
-from hrqb.tasks.pipelines import run_pipeline
 from hrqb.utils import click_argument_to_dict
 from hrqb.utils.data_warehouse import DWClient
+from hrqb.utils.luigi import run_pipeline, run_task
 from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)
@@ -95,21 +95,43 @@ def test_connections(ctx: click.Context) -> None:
     help="Comma separated list of luigi Parameters to pass to HRQBPipelineTask, "
     "e.g. 'Param1=foo,Param2=bar'.",
 )
+@click.option(
+    "-t",
+    "--task",
+    "target_task",
+    type=str,
+    required=False,
+    help="Select a target task for pipeline sub-commands (e.g. remove-data, run, etc.)",
+)
 @click.pass_context
 def pipeline(
     ctx: click.Context,
     pipeline: str,
     pipeline_module: str,
     pipeline_parameters: dict,
+    target_task: str,
 ) -> None:
+    # load pipeline task
     pipeline_task = HRQBPipelineTask.init_task_from_class_path(
         pipeline,
         task_class_module=pipeline_module,
         pipeline_parameters=pipeline_parameters,
     )
-    message = f"Successfully loaded pipeline: '{pipeline_module}.{pipeline}'"
     ctx.obj["PIPELINE_TASK"] = pipeline_task
+    message = f"Successfully loaded pipeline: '{pipeline_module}.{pipeline}'"
     logger.debug(message)
+
+    # load target pipeline task if present
+    pipeline_target_task = None
+    if target_task:
+        pipeline_target_task = pipeline_task.get_task(target_task)
+        if not pipeline_target_task:
+            message = f"Could not find target task: {target_task}"
+            logger.error(message)
+            ctx.exit(0)
+        message = f"Successfully loaded target task: {pipeline_target_task}"
+        logger.info(message)
+    ctx.obj["PIPELINE_TARGET_TASK"] = pipeline_target_task
 
 
 main.add_command(pipeline)
@@ -118,6 +140,7 @@ main.add_command(pipeline)
 @pipeline.command()
 @click.pass_context
 def status(ctx: click.Context) -> None:
+    """Get status of a pipeline's tasks."""
     pipeline_task = ctx.obj["PIPELINE_TASK"]
     logger.info(pipeline_task.pipeline_as_ascii())
 
@@ -125,27 +148,51 @@ def status(ctx: click.Context) -> None:
 @pipeline.command()
 @click.pass_context
 def remove_data(ctx: click.Context) -> None:
+    """Remove target data from pipeline tasks.
+
+    If argument --task is passed to parent 'pipeline' command, only this task will have
+    its target data removed.
+    """
     pipeline_task = ctx.obj["PIPELINE_TASK"]
-    logger.warning("Removing all Pipeline Tasks Targets (data).")
-    logger.info(pipeline_task.remove_pipeline_targets())
-    logger.info("Successfully removed pipeline artifacts.")
+    pipeline_target_task = ctx.obj["PIPELINE_TARGET_TASK"]
+
+    if pipeline_target_task:
+        pipeline_target_task.target.remove()
+        message = f"Target {pipeline_target_task.target} successfully removed"
+        logger.debug(message)
+    else:
+        pipeline_task.remove_pipeline_targets()
+
+    logger.info("Successfully removed target data(s).")
 
 
 @pipeline.command()
 @click.option(
     "--cleanup",
     is_flag=True,
-    help="Pass to automatically removed Task artifacts after run.",
+    help="Remove target data for all tasks in pipeline after run.",
 )
 @click.pass_context
 def run(
     ctx: click.Context,
     cleanup: bool,  # noqa: FBT001
 ) -> None:
+    """Run a pipeline.
+
+    If argument --task is passed to parent 'pipeline' command, only this task, and the
+    tasks it requires, will run.
+    """
     pipeline_task = ctx.obj["PIPELINE_TASK"]
-    run_results = run_pipeline(pipeline_task)
+    pipeline_target_task = ctx.obj["PIPELINE_TARGET_TASK"]
+
+    if pipeline_target_task:
+        run_results = run_task(pipeline_target_task)
+    else:
+        run_results = run_pipeline(pipeline_task)
+
     message = f"Pipeline run result: {run_results.status.name}"
     logger.info(message)
     logger.info(pipeline_task.pipeline_as_ascii())
+
     if cleanup:
         ctx.invoke(remove_data)

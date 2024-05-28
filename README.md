@@ -67,56 +67,64 @@ Options:
 Usage: -c pipeline [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  -p, --pipeline TEXT          Pipeline Task class name imported from
+  -p, --pipeline TEXT          Pipeline Task class name to be imported from
                                configured pipeline module, e.g. 'MyPipeline'
                                [required]
   -pm, --pipeline-module TEXT  Module where Pipeline Task class is defined.
                                Default: 'hrqb.tasks.pipelines'.
-  --pipeline-parameters TEXT   Comma separated list luigi Parameters to pass
-                               to HRQBPipelineTask, e.g.
+  --pipeline-parameters TEXT   Comma separated list of luigi Parameters to
+                               pass to HRQBPipelineTask, e.g.
                                'Param1=foo,Param2=bar'.
+  -t, --task TEXT              Select a target task for pipeline sub-commands
+                               (e.g. remove-data, run, etc.)
   -h, --help                   Show this message and exit.
 
 Commands:
-  remove-data
-  run
-  status
+  remove-data  Remove target data from pipeline tasks.
+  run          Run a pipeline.
+  status       Get status of a pipeline's tasks.
 ```
 <br>
 
 
 ### `pipeline status`
 ```text
-Usage: status [OPTIONS]
+Usage: -c pipeline status [OPTIONS]
 
-  Return the status of a Pipeline.
+  Get status of a pipeline's tasks.
 
 Options:
-  --help  Show this message and exit.
+  -h, --help  Show this message and exit.
 ```
 <br>
 
 
 ### `pipeline remove-data`
 ```text
-Usage: remove-data [OPTIONS]
+Usage: -c pipeline remove-data [OPTIONS]
 
-  Remove all Task output data (Targets) for a pipeline.
+  Remove target data from pipeline tasks.
+
+  If argument --task is passed to parent 'pipeline' command, only this task
+  will have its target data removed.
 
 Options:
-  --help  Show this message and exit.
+  -h, --help  Show this message and exit.
 ```
 <br>
 
 
 ### `pipeline run`
 ```text
-Usage: run [OPTIONS]
+Usage: -c pipeline run [OPTIONS]
 
-  Run a Pipeline.
+  Run a pipeline.
+
+  If argument --task is passed to parent 'pipeline' command, only this task,
+  and the tasks it requires, will run.
 
 Options:
-  --remove-data  Pass to automatically removed Task artifacts after run.
-  --help         Show this message and exit.
+  --cleanup   Remove target data for all tasks in pipeline after run.
+  -h, --help  Show this message and exit.
 ```
 

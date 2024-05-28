@@ -86,9 +86,26 @@ def test_cli_pipeline_remove_data_completed_extract_tasks(
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
-    assert "Removing all Pipeline Tasks Targets (data)." in caplog.text
+    assert "Successfully removed target data(s)." in caplog.text
     assert f"{task_extract_animal_names_target.path} successfully removed" in caplog.text
     assert f"{task_extract_animal_colors_target.path} successfully removed" in caplog.text
+
+
+def test_cli_pipeline_remove_data_task_not_found(
+    caplog, runner, task_extract_animal_names_target, task_extract_animal_colors_target
+):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=Animals",
+        "--task=BadTask",
+        "remove-data",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    assert "Could not find target task: BadTask" in caplog.text
 
 
 def test_cli_pipeline_run_success(caplog, runner):
@@ -127,11 +144,75 @@ def test_cli_pipeline_run_and_remove_data_success(caplog, runner):
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Pipeline run result: SUCCESS",
-        "Removing all Pipeline Tasks Targets (data).",
+        "Successfully removed target data(s).",
         "AnimalsDebug__Load__LoadAnimalsDebug.json successfully removed",
         "AnimalsDebug__Transform__PrepareAnimals.pickle successfully removed",
         "AnimalsDebug__Extract__ExtractAnimalColors.pickle successfully removed",
         "AnimalsDebug__Extract__ExtractAnimalNames.pickle successfully removed",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+def test_cli_pipeline_run_start_task_success(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=AnimalsDebug",
+        "--task=ExtractAnimalNames",
+        "run",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
+        "Successfully loaded target task: ExtractAnimalNames",
+        "Pipeline run result: SUCCESS",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+def test_cli_pipeline_run_start_task_cleanup_success(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=AnimalsDebug",
+        "--task=ExtractAnimalNames",
+        "run",
+        "--cleanup",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
+        "Successfully loaded target task: ExtractAnimalNames",
+        "ExtractAnimalNames.pickle successfully removed",
+        "Pipeline run result: SUCCESS",
+    ]
+    for line in lines:
+        assert text_in_logs_or_stdout(line, caplog, result)
+
+
+def test_cli_pipeline_run_start_task_not_found_error(caplog, runner):
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=AnimalsDebug",
+        "--task=BadTask",
+        "run",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    lines = [
+        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
+        "Could not find target task: BadTask",
     ]
     for line in lines:
         assert text_in_logs_or_stdout(line, caplog, result)
