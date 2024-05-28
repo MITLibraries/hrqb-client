@@ -1,6 +1,5 @@
 """hrqb.tasks.pipelines"""
 
-# WIP: HRQBPipelineTasks will be defined here
 from collections.abc import Iterator
 
 import luigi  # type: ignore[import-untyped]
