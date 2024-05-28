@@ -1,6 +1,7 @@
 import luigi
+import pytest
 
-from hrqb.tasks.pipelines import run_pipeline
+from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.full_annotated_pipeline import (
     AlphaNumeric,
     CombineLettersAndNumbers,
@@ -65,3 +66,13 @@ def test_full_annotated_simple_pipeline():
         "number": {0: 0, 1: 10, 2: 20, 3: 30, 4: 40},
         "letter": {0: "a", 1: "b", 2: "c", 3: "d", 4: "e"},
     }
+
+
+def test_run_pipeline_with_non_hrqbpipelinetask_type_raise_error(
+    task_extract_animal_names,
+):
+    with pytest.raises(
+        TypeError,
+        match="ExtractAnimalNames is not a HRQBPipelineTask type task",
+    ):
+        run_pipeline(task_extract_animal_names)
