@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from typing import Literal
 
 import luigi  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
@@ -178,6 +179,15 @@ class QuickbaseUpsertTask(HRQBTask):
         return ".json"
 
     @property
+    def merge_field(self) -> str | None:
+        """Field to merge records on during upsert.
+
+        Optional property that extending task classes can define to include a merge field.
+        Defaults to None.
+        """
+        return None
+
+    @property
     def target(self) -> QuickbaseTableTarget:
         return QuickbaseTableTarget(
             path=self.path,
@@ -190,7 +200,17 @@ class QuickbaseUpsertTask(HRQBTask):
         This method may be overridden if necessary if a load Task requires more complex
         behavior than a straight conversion of the parent's DataFrame to a dictionary.
         """
-        return self.single_input_dataframe.to_dict(orient="records")
+        records_df = self.single_input_dataframe
+        records_df = self._normalize_records_for_upsert(records_df)
+        return records_df.to_dict(orient="records")
+
+    def _normalize_records_for_upsert(self, records_df: pd.DataFrame) -> pd.DataFrame:
+        """Normalize dataframe before upsert to Quickbase.
+
+        If and when data type edge cases arise, as Quickbase is fairly particular about
+        formats, this is a good place to apply additional, centralized normalization.
+        """
+        return records_df.replace({np.nan: None})
 
     def run(self) -> None:
         """Retrieve data from parent Task and upsert to Quickbase table.
@@ -210,13 +230,29 @@ class QuickbaseUpsertTask(HRQBTask):
         upsert_payload = qbclient.prepare_upsert_payload(
             table_id,
             records,
-            merge_field=None,
+            merge_field=self.merge_field,
         )
         results = qbclient.upsert_records(upsert_payload)
 
+        self.parse_and_log_upsert_results(results)
         self.parse_and_log_upsert_errors(results)
 
         self.target.write(results)
+
+    def parse_and_log_upsert_results(self, api_response: dict) -> None:
+        """Parse Quickbase upsert response and log counts of records modified."""
+        metadata = api_response.get("metadata")
+        if not metadata:
+            return
+        processed = metadata.get("totalNumberOfRecordsProcessed", 0)
+        created = len(metadata.get("createdRecordIds", []))
+        updated = len(metadata.get("updatedRecordIds", []))
+        unchanged = len(metadata.get("unchangedRecordIds", []))
+        message = (
+            f"Record processed: {processed}, created: {created}, "
+            f"modified: {updated}, unchanged: {unchanged}"
+        )
+        logger.info(message)
 
     def parse_and_log_upsert_errors(self, api_response: dict) -> None:
         """Parse Quickbase upsert response and log any errors.
