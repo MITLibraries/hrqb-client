@@ -1,10 +1,12 @@
-# ruff: noqa: N802, N803
+# ruff: noqa: N802, N803, DTZ001
 
+import datetime
 import json
 import shutil
 from unittest import mock
 
 import luigi
+import numpy as np
 import pandas as pd
 import pytest
 import requests_mock
@@ -12,6 +14,7 @@ from click.testing import CliRunner
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
+from hrqb.tasks.employees import ExtractDWEmployees, TransformEmployees
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
 from tests.fixtures.tasks.extract import (
@@ -405,3 +408,66 @@ def _qbclient_connection_test_raise_exception():
     with mock.patch.object(QBClient, "test_connection") as mocked_connection_test:
         mocked_connection_test.side_effect = Exception("Intentional Error Here")
         yield
+
+
+@pytest.fixture
+def all_tasks_pipeline_name():
+    return "Testing"
+
+
+@pytest.fixture
+def task_extract_dw_employees(all_tasks_pipeline_name):
+    return ExtractDWEmployees(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_extract_dw_employees_dw_dataframe():
+    return pd.DataFrame(
+        [
+            {
+                "mit_id": "123456789",
+                "first_name": "John",
+                "last_name": "Doe",
+                "preferred_name": "Johnny",
+                "date_of_birth": datetime.datetime(1985, 4, 12),
+                "mit_hire_date": datetime.datetime(2010, 8, 15),
+                "mit_lib_hire_date": datetime.datetime(2012, 6, 20),
+                "appointment_end_date": "2025-12-31",
+                "home_addr_street1": "123 Elm Street",
+                "home_addr_street2": "Apt 456",
+                "home_addr_city": "Cambridge",
+                "home_addr_state": "MA",
+                "home_addr_zip": "02139",
+                "home_addr_country": "USA",
+                "mit_email_address": "john.doe@mit.edu",
+                "office_address": "77 Massachusetts Ave, Room 4-123",
+                "office_phone": "617-253-1234",
+                "home_phone": "617-555-6789",
+                "emergency_contact_name": "Jane Doe",
+                "emergency_contact_relation": "Spouse",
+                "emergency_contact_email": "jane.doe@example.com",
+                "emergency_home_phone": "617-555-1234",
+                "emergency_work_phone": "617-555-5678",
+                "emergency_cell_phone": "617-555-8765",
+                "highest_degree_type": "PhD",
+                "highest_degree_year": "2010",
+                "residency_status": "Citizen",
+                "yrs_of_mit_serv": "14",
+                "yrs_of_prof_expr": "20",
+                "i9_form_expiration_date": np.nan,  # Null value from pandas.read_sql()
+            }
+        ]
+    )
+
+
+@pytest.fixture
+def task_extract_dw_employees_target(
+    task_extract_dw_employees, task_extract_dw_employees_dw_dataframe
+):
+    task_extract_dw_employees.target.write(task_extract_dw_employees_dw_dataframe)
+    return task_extract_dw_employees.target
+
+
+@pytest.fixture
+def task_transform_employees(all_tasks_pipeline_name):
+    return TransformEmployees(pipeline=all_tasks_pipeline_name)
