@@ -44,7 +44,7 @@ def convert_oracle_bools_to_qb_bools(
     return dataframe
 
 
-def state_abbreviation_to_name(abbreviation: str | None) -> str | None:
+def us_state_abbreviation_to_name(abbreviation: str | None) -> str | None:
     try:
         state = getattr(us.states, abbreviation or "None")
     except AttributeError:

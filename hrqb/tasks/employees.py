@@ -8,7 +8,7 @@ from hrqb.base.task import (
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
 )
-from hrqb.utils import normalize_dataframe_dates, state_abbreviation_to_name
+from hrqb.utils import normalize_dataframe_dates, us_state_abbreviation_to_name
 
 
 class ExtractDWEmployees(SQLQueryExtractTask):
@@ -41,7 +41,7 @@ class TransformEmployees(PandasPickleTask):
         )
 
         employees_df["home_addr_state"] = employees_df["home_addr_state"].apply(
-            state_abbreviation_to_name
+            us_state_abbreviation_to_name
         )
 
         fields = {
