@@ -8,9 +8,11 @@ from freezegun import freeze_time
 
 from hrqb.utils import (
     click_argument_to_dict,
+    convert_oracle_bools_to_qb_bools,
     normalize_dataframe_dates,
     normalize_date,
     today_date,
+    us_state_abbreviation_to_name,
 )
 
 
@@ -40,11 +42,13 @@ def test_normalize_date_date_object_or_string_return_yyyy_mm_dd():
     assert normalize_date("2000-01-01 01:23:45") == "2000-01-01"
 
 
-def test_normalize_date_unparsable_values_return_none():
+def test_normalize_date_unparsable_values_return_none(caplog):
     assert normalize_date("") is None
     assert normalize_date(None) is None
     assert normalize_date(np.nan) is None
     assert normalize_date(42) is None
+    assert normalize_date("I cannot be parsed.") is None
+    assert "Unable to parse date from 'I cannot be parsed.'" in caplog.text
 
 
 def test_normalize_dataframe_dates_success():
@@ -80,6 +84,32 @@ def test_normalize_dataframe_dates_success():
                     "q": None,
                     "z": "zebra",
                 },
+            ]
+        )
+    )
+
+
+def test_us_state_abbreviation_to_name_success():
+    assert us_state_abbreviation_to_name("WA") == "Washington"
+
+
+def test_us_state_abbreviation_to_name_missing_abbrevation_return_none():
+    assert us_state_abbreviation_to_name("BAD") is None
+
+
+def test_convert_oracle_bools_to_qb_bools_success():
+    df = pd.DataFrame(
+        [
+            {"x": "Y", "y": 42},
+            {"x": "N", "y": 42},
+        ]
+    )
+    new_df = convert_oracle_bools_to_qb_bools(df, columns=["x"])
+    assert new_df.equals(
+        pd.DataFrame(
+            [
+                {"x": "Yes", "y": 42},
+                {"x": "No", "y": 42},
             ]
         )
     )

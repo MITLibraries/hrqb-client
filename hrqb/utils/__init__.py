@@ -1,11 +1,15 @@
 """hrqb.utils"""
 
 import datetime
+import logging
 
 import click
 import pandas as pd
 import us  # type: ignore[import-untyped]
+from dateutil.parser import ParserError  # type: ignore[import-untyped]
 from dateutil.parser import parse as date_parser  # type: ignore[import-untyped]
+
+logger = logging.getLogger(__name__)
 
 
 def today_date() -> datetime.date:
@@ -13,10 +17,14 @@ def today_date() -> datetime.date:
 
 
 def normalize_date(date: str | datetime.datetime) -> str | None:
-    if date is None or date == "" or pd.isna(date):
+    if date == "" or pd.isna(date):
         return None
     if isinstance(date, str):
-        date = date_parser(date)
+        try:
+            date = date_parser(date)
+        except ParserError:
+            message = f"Unable to parse date from '{date}'"
+            logger.warning(message)
     if isinstance(date, datetime.datetime):
         return date.strftime("%Y-%m-%d")
     return None
