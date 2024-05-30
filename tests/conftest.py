@@ -17,6 +17,7 @@ from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.tasks.employees import ExtractDWEmployees, TransformEmployees
 from hrqb.tasks.libhr_employee_appointments import (
     ExtractLibHREmployeeAppointments,
+    ExtractQBDepartments,
     LoadLibHREmployeeAppointments,
     TransformLibHREmployeeAppointments,
 )
@@ -529,10 +530,26 @@ def mocked_qbclient_departments_df():
 
 
 @pytest.fixture
+def task_extract_qb_departments(
+    pipeline_update_libhr_data,
+) -> ExtractQBDepartments:
+    return pipeline_update_libhr_data.get_task(ExtractQBDepartments)
+
+
+@pytest.fixture
+def task_extract_qb_departments_target(
+    task_extract_qb_departments, mocked_qbclient_departments_df
+):
+    task_extract_qb_departments.run()
+    return task_extract_qb_departments.target
+
+
+@pytest.fixture
 def task_transform_libhr_employee_appointments(
     mocked_qbclient_departments_df,
     pipeline_update_libhr_data,
     task_extract_libhr_employee_appointments_target,
+    task_extract_qb_departments_target,
 ) -> TransformLibHREmployeeAppointments:
     return pipeline_update_libhr_data.get_task(TransformLibHREmployeeAppointments)
 

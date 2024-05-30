@@ -15,9 +15,7 @@ def test_extract_libhr_employee_appointments_read_csv(
 
 
 def test_transform_libhr_employee_appointments_merge_departments(
-    mocked_qbclient_departments_df,
     task_transform_libhr_employee_appointments,
-    task_extract_dw_employees_target,
 ):
     new_df = task_transform_libhr_employee_appointments.get_dataframe()
     assert new_df.equals(

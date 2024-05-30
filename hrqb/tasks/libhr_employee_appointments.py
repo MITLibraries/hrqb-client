@@ -26,6 +26,17 @@ class ExtractLibHREmployeeAppointments(PandasPickleTask):
         return pd.read_csv(self.csv_filepath)
 
 
+class ExtractQBDepartments(PandasPickleTask):
+    """Get Departments data from Quickbase."""
+
+    pipeline = luigi.Parameter()
+    stage = luigi.Parameter("Extract")
+
+    def get_dataframe(self) -> pd.DataFrame:
+        qbclient = QBClient()
+        return qbclient.get_table_as_df(qbclient.get_table_id("Departments"))
+
+
 class TransformLibHREmployeeAppointments(PandasPickleTask):
     """Enrich CSV data with data from other QB tables."""
 
@@ -36,16 +47,16 @@ class TransformLibHREmployeeAppointments(PandasPickleTask):
         return [
             ExtractLibHREmployeeAppointments(
                 pipeline=self.pipeline, csv_filepath=self.csv_filepath
-            )
+            ),
+            ExtractQBDepartments(pipeline=self.pipeline),
         ]
 
     def get_dataframe(self) -> pd.DataFrame:
-        libhr_df = self.single_input_dataframe
+        libhr_df = self.named_inputs["ExtractLibHREmployeeAppointments"].read()
+        departments_df = self.named_inputs["ExtractQBDepartments"].read()
 
-        # get Department Record IDs from Quickbase and merge with static data
-        qbclient = QBClient()
-        departments_df = qbclient.get_table_as_df(qbclient.get_table_id("Departments"))
-        libhr_df = libhr_df.merge(
+        # merge department data from quickbase with libhr data
+        libhr_df = libhr_df.merge(  # type: ignore[union-attr]
             departments_df[["Acronym", "Record ID#"]].rename(
                 columns={"Acronym": "Department", "Record ID#": "Related Department ID"}
             ),
