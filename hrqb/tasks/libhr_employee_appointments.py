@@ -55,10 +55,14 @@ class TransformLibHREmployeeAppointments(PandasPickleTask):
         libhr_df = self.named_inputs["ExtractLibHREmployeeAppointments"].read()
         departments_df = self.named_inputs["ExtractQBDepartments"].read()
 
+        # normalize department acronym merge field
+        libhr_df["Department"] = libhr_df["Department"].str.upper()
+        departments_df["Department"] = departments_df["Acronym"].str.upper()
+
         # merge department data from quickbase with libhr data
         libhr_df = libhr_df.merge(  # type: ignore[union-attr]
-            departments_df[["Acronym", "Record ID#"]].rename(
-                columns={"Acronym": "Department", "Record ID#": "Related Department ID"}
+            departments_df[["Department", "Record ID#"]].rename(
+                columns={"Record ID#": "Related Department ID"}
             ),
             how="left",
         )
