@@ -14,6 +14,7 @@ attrs = "*"
 requests = "*"
 types-requests = "*"
 sqlalchemy = "*"
+us = "*"
 
 [dev-packages]
 black = "*"
@@ -26,6 +27,7 @@ ruff = "*"
 requests-mock = "*"
 freezegun = "*"
 sqlalchemy-stubs = "*"
+boto3 = "*"
 
 [requires]
 python_version = "3.11"

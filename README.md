@@ -67,17 +67,18 @@ Options:
 Usage: -c pipeline [OPTIONS] COMMAND [ARGS]...
 
 Options:
-  -p, --pipeline TEXT          Pipeline Task class name to be imported from
-                               configured pipeline module, e.g. 'MyPipeline'
-                               [required]
-  -pm, --pipeline-module TEXT  Module where Pipeline Task class is defined.
-                               Default: 'hrqb.tasks.pipelines'.
-  --pipeline-parameters TEXT   Comma separated list of luigi Parameters to
-                               pass to HRQBPipelineTask, e.g.
-                               'Param1=foo,Param2=bar'.
-  -t, --task TEXT              Select a target task for pipeline sub-commands
-                               (e.g. remove-data, run, etc.)
-  -h, --help                   Show this message and exit.
+  -p, --pipeline TEXT             Pipeline Task class name to be imported from
+                                  configured pipeline module, e.g.
+                                  'MyPipeline'  [required]
+  -pm, --pipeline-module TEXT     Module where Pipeline Task class is defined.
+                                  Default: 'hrqb.tasks.pipelines'.
+  -pp, --pipeline-parameters TEXT
+                                  Comma separated list of luigi Parameters to
+                                  pass to HRQBPipelineTask, e.g.
+                                  'Param1=foo,Param2=bar'.
+  -t, --task TEXT                 Select a target task for pipeline sub-
+                                  commands (e.g. remove-data, run, etc.)
+  -h, --help                      Show this message and exit.
 
 Commands:
   remove-data  Remove target data from pipeline tasks.
