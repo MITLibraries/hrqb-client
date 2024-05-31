@@ -354,6 +354,15 @@ def mocked_query_table_fields():
 
 
 @pytest.fixture
+def mocked_qb_api_getTable(qbclient, global_requests_mock, mocked_table_id):
+    url = f"{qbclient.api_base}/tables/{mocked_table_id}?appId={qbclient.app_id}"
+    with open("tests/fixtures/qb_api_responses/getTable.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.get(url, json=api_response)
+    return api_response
+
+
+@pytest.fixture
 def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
     with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
         mocked_table_fields.return_value = mocked_query_table_fields

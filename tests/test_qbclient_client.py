@@ -36,6 +36,10 @@ def test_qbclient_get_app_info(qbclient, mocked_qb_api_getApp):
     assert qbclient.get_app_info() == mocked_qb_api_getApp
 
 
+def test_qbclient_get_table(qbclient, mocked_table_id, mocked_qb_api_getTable):
+    assert qbclient.get_table(mocked_table_id) == mocked_qb_api_getTable
+
+
 def test_qbclient_get_tables(qbclient, mocked_qb_api_getAppTables):
     assert len(mocked_qb_api_getAppTables) == 2
     assert mocked_qb_api_getAppTables[0]["name"] == "Example Table #0"

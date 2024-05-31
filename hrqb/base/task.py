@@ -91,7 +91,7 @@ class HRQBTask(luigi.Task):
         return target.read()  # type: ignore[return-value]
 
     @property
-    def named_inputs(self) -> dict[str, PandasPickleTarget | QuickbaseTableTarget]:
+    def named_inputs(self) -> dict[str, luigi.Target]:
         """Dictionary of parent Tasks and their Targets.
 
         This is useful when a Task has multiple parent Tasks, to easily and precisely
@@ -241,17 +241,12 @@ class QuickbaseUpsertTask(HRQBTask):
 
     def parse_and_log_upsert_results(self, api_response: dict) -> None:
         """Parse Quickbase upsert response and log counts of records modified."""
-        metadata = api_response.get("metadata")
-        if not metadata:
+        record_counts = QBClient.parse_upsert_results(api_response)
+        if not record_counts:
             return
-        processed = metadata.get("totalNumberOfRecordsProcessed", 0)
-        created = len(metadata.get("createdRecordIds", []))
-        updated = len(metadata.get("updatedRecordIds", []))
-        unchanged = len(metadata.get("unchangedRecordIds", []))
-        message = (
-            f"Record processed: {processed}, created: {created}, "
-            f"modified: {updated}, unchanged: {unchanged}"
-        )
+        for key in ["created", "updated", "unchanged"]:
+            record_counts[key] = len(record_counts[key])
+        message = f"Upsert results: {record_counts}"
         logger.info(message)
 
     def parse_and_log_upsert_errors(self, api_response: dict) -> None:
