@@ -15,6 +15,13 @@ from click.testing import CliRunner
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
 from hrqb.tasks.employees import ExtractDWEmployees, TransformEmployees
+from hrqb.tasks.libhr_employee_appointments import (
+    ExtractLibHREmployeeAppointments,
+    ExtractQBDepartments,
+    LoadLibHREmployeeAppointments,
+    TransformLibHREmployeeAppointments,
+)
+from hrqb.tasks.pipelines import UpdateLibHRData
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
 from tests.fixtures.tasks.extract import (
@@ -471,3 +478,84 @@ def task_extract_dw_employees_target(
 @pytest.fixture
 def task_transform_employees(all_tasks_pipeline_name):
     return TransformEmployees(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def libhr_static_data_csv_filepath():
+    return "tests/fixtures/libhr_static_data.csv"
+
+
+@pytest.fixture
+def pipeline_update_libhr_data(libhr_static_data_csv_filepath):
+    return UpdateLibHRData(csv_filepath=libhr_static_data_csv_filepath)
+
+
+@pytest.fixture
+def task_extract_libhr_employee_appointments(
+    pipeline_update_libhr_data,
+) -> ExtractLibHREmployeeAppointments:
+    return pipeline_update_libhr_data.get_task(ExtractLibHREmployeeAppointments)
+
+
+@pytest.fixture
+def task_extract_libhr_employee_appointments_target(
+    task_extract_libhr_employee_appointments,
+):
+    task_extract_libhr_employee_appointments.run()
+    return task_extract_libhr_employee_appointments.target
+
+
+@pytest.fixture
+def mocked_qbclient_departments_df():
+    with mock.patch(
+        "hrqb.utils.quickbase.QBClient.get_table_as_df"
+    ) as mocked_get_table_df, mock.patch(
+        "hrqb.utils.quickbase.QBClient.get_table_id"
+    ) as _mocked_table_id:
+        mocked_get_table_df.return_value = pd.DataFrame(
+            [
+                {
+                    "Department": "Distinctive Collections",
+                    "Acronym": "DDC",
+                    "Record ID#": 35,
+                },
+                {
+                    "Department": "Information Technology Services",
+                    "Acronym": "ITS",
+                    "Record ID#": 40,
+                },
+            ]
+        )
+        yield mocked_get_table_df
+
+
+@pytest.fixture
+def task_extract_qb_departments(
+    pipeline_update_libhr_data,
+) -> ExtractQBDepartments:
+    return pipeline_update_libhr_data.get_task(ExtractQBDepartments)
+
+
+@pytest.fixture
+def task_extract_qb_departments_target(
+    task_extract_qb_departments, mocked_qbclient_departments_df
+):
+    task_extract_qb_departments.run()
+    return task_extract_qb_departments.target
+
+
+@pytest.fixture
+def task_transform_libhr_employee_appointments(
+    mocked_qbclient_departments_df,
+    pipeline_update_libhr_data,
+    task_extract_libhr_employee_appointments_target,
+    task_extract_qb_departments_target,
+) -> TransformLibHREmployeeAppointments:
+    return pipeline_update_libhr_data.get_task(TransformLibHREmployeeAppointments)
+
+
+@pytest.fixture
+def task_load_libhr_employee_appointments(
+    pipeline_update_libhr_data,
+) -> LoadLibHREmployeeAppointments:
+    return pipeline_update_libhr_data.get_task(LoadLibHREmployeeAppointments)
