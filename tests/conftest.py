@@ -15,13 +15,6 @@ from pandas import Timestamp
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
-from hrqb.tasks.employees import ExtractDWEmployees, TransformEmployees
-from hrqb.tasks.libhr_employee_appointments import (
-    ExtractLibHREmployeeAppointments,
-    ExtractQBDepartments,
-    LoadLibHREmployeeAppointments,
-    TransformLibHREmployeeAppointments,
-)
 from hrqb.tasks.pipelines import UpdateLibHRData
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
@@ -434,6 +427,8 @@ def all_tasks_pipeline_name():
 
 @pytest.fixture
 def task_extract_dw_employees(all_tasks_pipeline_name):
+    from hrqb.tasks.employees import ExtractDWEmployees
+
     return ExtractDWEmployees(pipeline=all_tasks_pipeline_name)
 
 
@@ -487,6 +482,8 @@ def task_extract_dw_employees_target(
 
 @pytest.fixture
 def task_transform_employees(all_tasks_pipeline_name):
+    from hrqb.tasks.employees import TransformEmployees
+
     return TransformEmployees(pipeline=all_tasks_pipeline_name)
 
 
@@ -501,9 +498,9 @@ def pipeline_update_libhr_data(libhr_static_data_csv_filepath):
 
 
 @pytest.fixture
-def task_extract_libhr_employee_appointments(
-    pipeline_update_libhr_data,
-) -> ExtractLibHREmployeeAppointments:
+def task_extract_libhr_employee_appointments(pipeline_update_libhr_data):
+    from hrqb.tasks.libhr_employee_appointments import ExtractLibHREmployeeAppointments
+
     return pipeline_update_libhr_data.get_task(ExtractLibHREmployeeAppointments)
 
 
@@ -540,9 +537,9 @@ def mocked_qbclient_departments_df():
 
 
 @pytest.fixture
-def task_extract_qb_departments(
-    pipeline_update_libhr_data,
-) -> ExtractQBDepartments:
+def task_extract_qb_departments(pipeline_update_libhr_data):
+    from hrqb.tasks.libhr_employee_appointments import ExtractQBDepartments
+
     return pipeline_update_libhr_data.get_task(ExtractQBDepartments)
 
 
@@ -560,14 +557,18 @@ def task_transform_libhr_employee_appointments(
     pipeline_update_libhr_data,
     task_extract_libhr_employee_appointments_target,
     task_extract_qb_departments_target,
-) -> TransformLibHREmployeeAppointments:
+):
+    from hrqb.tasks.libhr_employee_appointments import TransformLibHREmployeeAppointments
+
     return pipeline_update_libhr_data.get_task(TransformLibHREmployeeAppointments)
 
 
 @pytest.fixture
 def task_load_libhr_employee_appointments(
     pipeline_update_libhr_data,
-) -> LoadLibHREmployeeAppointments:
+):
+    from hrqb.tasks.libhr_employee_appointments import LoadLibHREmployeeAppointments
+
     return pipeline_update_libhr_data.get_task(LoadLibHREmployeeAppointments)
 
 
