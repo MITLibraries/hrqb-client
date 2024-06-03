@@ -38,4 +38,10 @@ select
     e.I9_FORM_EXPIRATION_DATE,
     e.RESIDENCY_STATUS
 from HR_PERSON_EMPLOYEE e
+where e.MIT_ID in (
+    select
+        a.MIT_ID
+    from HR_APPOINTMENT_DETAIL a
+    where a.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
+)
 order by LAST_NAME
