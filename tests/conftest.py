@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 import requests_mock
 from click.testing import CliRunner
+from pandas import Timestamp
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
 from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
@@ -568,3 +569,146 @@ def task_load_libhr_employee_appointments(
     pipeline_update_libhr_data,
 ) -> LoadLibHREmployeeAppointments:
     return pipeline_update_libhr_data.get_task(LoadLibHREmployeeAppointments)
+
+
+@pytest.fixture
+def task_load_employees(all_tasks_pipeline_name):
+    from hrqb.tasks.employees import LoadEmployees
+
+    return LoadEmployees(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_extract_dw_employee_appointment_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_appointments import ExtractDWEmployeeAppointments
+
+    task = ExtractDWEmployeeAppointments(pipeline=all_tasks_pipeline_name)
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "hr_appt_key": 123456,
+                    "mit_id": "123456789",
+                    "hr_org_unit_title": "Libraries",
+                    "appt_begin_date": Timestamp("2021-01-01 00:00:00"),
+                    "appt_end_date": datetime.datetime(2023, 12, 31, 0, 0),
+                    "is_most_recent_appt": "Y",
+                    "hr_job_key": "C123456789",
+                    "job_id": "123456789",
+                    "job_title_long": "Software Developer 1",
+                    "employee_group": "Exempt",
+                    "exempt": "E",
+                    "job_family": "Information Technology",
+                    "job_subfamily": "Application Development",
+                    "job_track": "Individual",
+                    "pay_grade": "5",
+                    "hr_position_key": "S987654321",
+                    "position_id": "987654321",
+                    "position_title_long": "Developer",
+                    "employee_type": "Admin Staff",
+                    "union_name": "Admin Staff",
+                    "term_or_perm": "Permanent",
+                    "benefits_group_type": "Standard Benefits",
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_extract_qb_libhr_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_appointments import ExtractQBLibHREmployeeAppointments
+
+    task = ExtractQBLibHREmployeeAppointments(pipeline=all_tasks_pipeline_name)
+    # NOTE: only utilized fields are included in mocked data
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "Related Employee MIT ID": "123456789",
+                    "Related Supervisor MIT ID": "111111111",
+                    "HC ID": "L-001",
+                    "Position ID": 987654321,
+                    "Cost Object": 7777777,
+                    "Related Department ID": 42.0,
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_extract_qb_departments_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_appointments import ExtractQBDepartments
+
+    task = ExtractQBDepartments(pipeline=all_tasks_pipeline_name)
+    # NOTE: only utilized fields are included in mocked data
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "Directorate": "Information Technology Services",
+                    "Record ID#": 42,
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_transform_employee_appointments_complete(
+    all_tasks_pipeline_name,
+    task_extract_dw_employee_appointment_complete,
+    task_extract_qb_libhr_complete,
+    task_extract_qb_departments_complete,
+):
+    from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
+
+    task = TransformEmployeeAppointments(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_employee_appointments(
+    all_tasks_pipeline_name, task_transform_employee_appointments_complete
+):
+    from hrqb.tasks.employee_appointments import LoadEmployeeAppointments
+
+    return LoadEmployeeAppointments(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_transform_employee_types_complete(
+    all_tasks_pipeline_name, task_extract_dw_employee_appointment_complete
+):
+    from hrqb.tasks.employee_types import TransformEmployeeTypes
+
+    task = TransformEmployeeTypes(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_transform_job_titles_complete(
+    all_tasks_pipeline_name, task_extract_dw_employee_appointment_complete
+):
+    from hrqb.tasks.job_titles import TransformUniqueJobTitles
+
+    task = TransformUniqueJobTitles(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_transform_position_titles_complete(
+    all_tasks_pipeline_name, task_extract_dw_employee_appointment_complete
+):
+    from hrqb.tasks.position_titles import TransformUniquePositionTitles
+
+    task = TransformUniquePositionTitles(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task

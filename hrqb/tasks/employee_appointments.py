@@ -23,7 +23,7 @@ class ExtractQBLibHREmployeeAppointments(PandasPickleTask):
 
     stage = luigi.Parameter("Extract")
 
-    def get_dataframe(self) -> pd.DataFrame:
+    def get_dataframe(self) -> pd.DataFrame:  # pragma: nocover
         qbclient = QBClient()
         return qbclient.get_table_as_df(
             qbclient.get_table_id("LibHR Employee Appointments")
@@ -35,7 +35,7 @@ class ExtractQBDepartments(PandasPickleTask):
 
     stage = luigi.Parameter("Extract")
 
-    def get_dataframe(self) -> pd.DataFrame:
+    def get_dataframe(self) -> pd.DataFrame:  # pragma: nocover
         qbclient = QBClient()
         return qbclient.get_table_as_df(qbclient.get_table_id("Departments"))
 

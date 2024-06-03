@@ -18,3 +18,7 @@ def test_transform_employees_normalize_state_names(
     new_df = task_transform_employees.get_dataframe()
     row = new_df.iloc[0]
     assert row["State/Region"] == "Massachusetts"
+
+
+def test_task_load_employee_appointments_explicit_properties(task_load_employees):
+    assert task_load_employees.merge_field == "MIT ID"
