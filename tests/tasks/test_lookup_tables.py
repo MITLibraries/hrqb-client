@@ -18,3 +18,11 @@ def test_task_transform_position_titles_required_fields(
     assert {"Position Title"} == set(
         task_transform_position_titles_complete.get_dataframe().columns
     )
+
+
+def test_task_transform_employee_salary_change_types_required_fields(
+    task_transform_employee_salary_change_types_complete,
+):
+    assert {"Salary Change Type"} == set(
+        task_transform_employee_salary_change_types_complete.get_dataframe().columns
+    )
