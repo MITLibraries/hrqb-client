@@ -17,6 +17,7 @@ from hrqb.base import (
 from hrqb.config import Config
 from hrqb.utils.data_warehouse import DWClient
 from tests.fixtures.tasks.extract import ExtractAnimalNames
+from tests.fixtures.tasks.load import LoadTaskMultipleRequired
 
 
 def test_base_task_required_parameter_pipeline(pipeline_name):
@@ -265,3 +266,12 @@ def test_base_pipeline_task_get_task_class_success(task_pipeline_animals):
 
 def test_base_pipeline_task_get_task_not_found_return_none(task_pipeline_animals):
     assert not task_pipeline_animals.get_task("BadTask")
+
+
+def test_quickbase_task_input_task_to_load_property_used(
+    pipeline_name, task_extract_animal_colors_target
+):
+    task = LoadTaskMultipleRequired(pipeline=pipeline_name)
+    assert task.input_task_to_load == "ExtractAnimalColors"
+    input_dict = task.get_records()
+    assert pd.DataFrame(input_dict).equals(task_extract_animal_colors_target.read())

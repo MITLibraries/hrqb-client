@@ -23,3 +23,20 @@ class LoadAnimalsDebug(QuickbaseUpsertTask):
         """Override default method to print data instead of upsert to Quickbase."""
         print(self.single_input_dataframe)  # noqa: T201
         self.target.write({"note": "data printed to console"})
+
+
+class LoadTaskMultipleRequired(QuickbaseUpsertTask):
+    stage = luigi.Parameter("Load")
+
+    @property
+    def input_task_to_load(self) -> str | None:
+        return "ExtractAnimalColors"
+
+    def requires(self):
+        """Example where Load task has multiple required parent tasks."""
+        from tests.fixtures.tasks.extract import ExtractAnimalColors, ExtractAnimalNames
+
+        return [
+            ExtractAnimalColors(pipeline=self.pipeline),
+            ExtractAnimalNames(pipeline=self.pipeline),
+        ]
