@@ -11,9 +11,11 @@ class FullUpdate(HRQBPipelineTask):
     """Pipeline to perform a full update of all Quickbase tables."""
 
     def requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
+        from hrqb.tasks.employee_appointments import LoadEmployeeAppointments
         from hrqb.tasks.employees import LoadEmployees
 
         yield LoadEmployees(pipeline=self.pipeline_name)
+        yield LoadEmployeeAppointments(pipeline=self.pipeline_name)
 
 
 class UpdateLibHRData(HRQBPipelineTask):

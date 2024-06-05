@@ -47,7 +47,11 @@ class QBClient:
         return Config().QUICKBASE_APP_ID
 
     def make_request(
-        self, requests_method: RequestsMethod, path: str, **kwargs: dict
+        self,
+        requests_method: RequestsMethod,
+        path: str,
+        cache: bool = True,  # noqa: FBT001, FBT002
+        **kwargs: dict,
     ) -> dict:
         """Make an API request to Quickbase API.
 
@@ -57,7 +61,7 @@ class QBClient:
         """
         # hash the request to cache the response
         request_hash = (path, json.dumps(kwargs, sort_keys=True))
-        if self.cache_results and request_hash in self._cache:
+        if cache and self.cache_results and request_hash in self._cache:
             message = f"Using cached result for path: {path}"
             logger.debug(message)
             return self._cache[request_hash]
@@ -78,7 +82,7 @@ class QBClient:
             raise RequestException(message)
 
         data = response.json()
-        if self.cache_results:
+        if cache and self.cache_results:
             self._cache[request_hash] = data
 
         return data
@@ -89,6 +93,13 @@ class QBClient:
         https://developer.quickbase.com/operation/getApp
         """
         return self.make_request(requests.get, f"apps/{self.app_id}")
+
+    def get_table(self, table_id: str) -> dict:
+        """Get single Tables as dictionary.
+
+        https://developer.quickbase.com/operation/getTable
+        """
+        return self.make_request(requests.get, f"tables/{table_id}?appId={self.app_id}")
 
     def get_tables(self) -> pd.DataFrame:
         """Get all QB Tables as a Dataframe.
@@ -125,7 +136,22 @@ class QBClient:
 
         https://developer.quickbase.com/operation/upsert
         """
-        return self.make_request(requests.post, "records", json=upsert_payload)
+        return self.make_request(
+            requests.post, "records", cache=False, json=upsert_payload
+        )
+
+    @staticmethod
+    def parse_upsert_results(api_response: dict) -> dict | None:
+        """Parse Record IDs and counts from API response from upsert."""
+        metadata = api_response.get("metadata")
+        if not metadata:
+            return None
+        return {
+            "processed": metadata.get("totalNumberOfRecordsProcessed", 0),
+            "created": metadata.get("createdRecordIds", []),
+            "updated": metadata.get("updatedRecordIds", []),
+            "unchanged": metadata.get("unchangedRecordIds", []),
+        }
 
     def prepare_upsert_payload(
         self,
@@ -180,11 +206,11 @@ class QBClient:
 
         https://developer.quickbase.com/operation/runQuery
         """
-        return self.make_request(requests.post, "records/query", json=query)
+        return self.make_request(requests.post, "records/query", cache=False, json=query)
 
     def query_records_mapped_fields_iter(self, query: dict) -> Iterator[dict]:
         """Query for records, yielding records with fields mapped to their labels."""
-        response = self.make_request(requests.post, "records/query", json=query)
+        response = self.query_records(query)
         field_map = {f["id"]: f["label"] for f in response["fields"]}
         for record in response["data"]:
             yield {

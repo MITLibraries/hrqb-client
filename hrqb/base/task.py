@@ -91,7 +91,7 @@ class HRQBTask(luigi.Task):
         return target.read()  # type: ignore[return-value]
 
     @property
-    def named_inputs(self) -> dict[str, PandasPickleTarget | QuickbaseTableTarget]:
+    def named_inputs(self) -> dict[str, luigi.Target]:
         """Dictionary of parent Tasks and their Targets.
 
         This is useful when a Task has multiple parent Tasks, to easily and precisely
@@ -188,6 +188,17 @@ class QuickbaseUpsertTask(HRQBTask):
         return None
 
     @property
+    def input_task_to_load(self) -> str | None:
+        """Task name of parent, required, input task to get data from and upsert.
+
+        If a QuickbaseUpsertTask load task has multiple required tasks, we cannot use the
+        convenience method 'single_input_dataframe' to get the dataframe to load.  This
+        property can be set to explicitly define which single parent task to retrieve data
+        from for upsert.
+        """
+        return None
+
+    @property
     def target(self) -> QuickbaseTableTarget:
         return QuickbaseTableTarget(
             path=self.path,
@@ -200,7 +211,10 @@ class QuickbaseUpsertTask(HRQBTask):
         This method may be overridden if necessary if a load Task requires more complex
         behavior than a straight conversion of the parent's DataFrame to a dictionary.
         """
-        records_df = self.single_input_dataframe
+        if self.input_task_to_load:
+            records_df = self.named_inputs[self.input_task_to_load].read()
+        else:
+            records_df = self.single_input_dataframe
         records_df = self._normalize_records_for_upsert(records_df)
         return records_df.to_dict(orient="records")
 
@@ -241,17 +255,12 @@ class QuickbaseUpsertTask(HRQBTask):
 
     def parse_and_log_upsert_results(self, api_response: dict) -> None:
         """Parse Quickbase upsert response and log counts of records modified."""
-        metadata = api_response.get("metadata")
-        if not metadata:
-            return
-        processed = metadata.get("totalNumberOfRecordsProcessed", 0)
-        created = len(metadata.get("createdRecordIds", []))
-        updated = len(metadata.get("updatedRecordIds", []))
-        unchanged = len(metadata.get("unchangedRecordIds", []))
-        message = (
-            f"Record processed: {processed}, created: {created}, "
-            f"modified: {updated}, unchanged: {unchanged}"
-        )
+        record_counts = QBClient.parse_upsert_results(api_response)
+        if not record_counts:
+            return  # pragma: nocover
+        for key in ["created", "updated", "unchanged"]:
+            record_counts[key] = len(record_counts[key])
+        message = f"Upsert results: {record_counts}"
         logger.info(message)
 
     def parse_and_log_upsert_errors(self, api_response: dict) -> None:

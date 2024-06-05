@@ -83,5 +83,9 @@ class LoadEmployees(QuickbaseUpsertTask):
     table_name = luigi.Parameter("Employees")
     stage = luigi.Parameter("Load")
 
+    @property
+    def merge_field(self) -> str | None:
+        return "MIT ID"
+
     def requires(self) -> list[luigi.Task]:  # pragma: nocover
         return [TransformEmployees(pipeline=self.pipeline)]
