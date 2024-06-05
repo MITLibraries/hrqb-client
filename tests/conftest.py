@@ -713,3 +713,88 @@ def task_transform_position_titles_complete(
     task = TransformUniquePositionTitles(pipeline=all_tasks_pipeline_name)
     task.run()
     return task
+
+
+@pytest.fixture
+def task_extract_dw_employee_salary_history_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_salary_history import ExtractDWEmployeeSalaryHistory
+
+    task = ExtractDWEmployeeSalaryHistory(pipeline=all_tasks_pipeline_name)
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "hr_appt_key": 123,
+                    "hr_appt_tx_key": "00000000ABCDEFGHIJ1234567890",
+                    "mit_id": "123456789",
+                    "job_id": "123456789",
+                    "position_id": "987654321",
+                    "start_date": Timestamp("2010-01-01 00:00:00"),
+                    "end_date": datetime.datetime(2011, 12, 1, 0, 0),
+                    "hr_personnel_action_type_key": "CS01",
+                    "hr_personnel_action": "Annual Salary Review",
+                    "hr_action_reason": "Review Increase",
+                    "original_base_amount": 50000.0,
+                    "original_hourly_rate": 27.77,
+                    "original_effort": 100.0,
+                    "temp_change_base_amount": 0.0,
+                    "temp_change_hourly_rate": 0.0,
+                    "temp_effort": 0.0,
+                    "temp_base_change_percent": 0.0,
+                    "special_onetime_pay": "N",
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_shared_extract_qb_employee_appointments_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.shared import ExtractQBEmployeeAppointments
+
+    task = ExtractQBEmployeeAppointments(pipeline=all_tasks_pipeline_name)
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "Record ID#": 12000,
+                    "HR Appointment Key": 123.0,
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_transform_employee_salary_history_complete(
+    all_tasks_pipeline_name,
+    task_extract_dw_employee_salary_history_complete,
+    task_shared_extract_qb_employee_appointments_complete,
+):
+    from hrqb.tasks.employee_salary_history import TransformEmployeeSalaryHistory
+
+    task = TransformEmployeeSalaryHistory(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_employee_salary_history_complete(
+    all_tasks_pipeline_name, task_transform_employee_salary_history_complete
+):
+    from hrqb.tasks.employee_salary_history import LoadEmployeeSalaryHistory
+
+    return LoadEmployeeSalaryHistory(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_transform_employee_salary_change_types_complete(
+    all_tasks_pipeline_name, task_extract_dw_employee_salary_history_complete
+):
+    from hrqb.tasks.salary_change_types import TransformSalaryChangeTypes
+
+    task = TransformSalaryChangeTypes(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
