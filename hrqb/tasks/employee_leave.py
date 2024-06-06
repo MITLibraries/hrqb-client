@@ -63,7 +63,7 @@ class TransformEmployeeLeave(PandasPickleTask):
             leaves_df, columns=["paid_leave", "accrue_seniority"]
         )
 
-        # mint a unique MD5 hash based on leave data
+        # mint a unique, deterministic value for the "Key" field in Employee Leave table
         leaves_df["key"] = leaves_df.apply(
             lambda row: self._create_unique_key_from_leave_data(
                 row.mit_id,
@@ -94,7 +94,20 @@ class TransformEmployeeLeave(PandasPickleTask):
         absence_type: str,
         absence_hours: str | float,
     ) -> str:
-        """Create MD5 hash based specific leave data."""
+        """Create unique, deterministic MD5 hash based on select leave attributes.
+
+        Most tables in Quickbase have a complimentary unique value in the data warehouse
+        to use as a merge field: Employees have MIT ID, Employee Appointments have "HR Job
+        Key", Salary adjustments have "HR TXN (Transaction) Key", etc.  However, absence
+        data in the data warehouse does not have such a column or value that can be used
+        to unambiguously and deterministically identify an absence row.
+
+        For this reason, an MD5 hash is created from attributes from the leave data that,
+        in combination, is unique: MIT ID and Absence date, type, and duration.  By
+        including this MD5 hash in Quickbase as a field, we can use this in future data
+        loads as a merge field to avoid duplicating what are effectively the same absence
+        record.
+        """
         data_string = "|".join(
             [
                 mit_id,
