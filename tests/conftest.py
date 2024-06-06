@@ -798,3 +798,63 @@ def task_transform_employee_salary_change_types_complete(
     task = TransformSalaryChangeTypes(pipeline=all_tasks_pipeline_name)
     task.run()
     return task
+
+
+@pytest.fixture
+def task_extract_dw_employee_leave_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_leave import ExtractDWEmployeeLeave
+
+    task = ExtractDWEmployeeLeave(pipeline=all_tasks_pipeline_name)
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "mit_id": "123456789",
+                    "appt_begin_date": Timestamp("2010-01-01 00:00:00"),
+                    "appt_end_date": datetime.datetime(2011, 12, 1, 0, 0),
+                    "hr_appt_key": 123,
+                    "absence_date": Timestamp("2010-07-01 00:00:00"),
+                    "absence_type": "Vacation",
+                    "absence_type_code": "VACA",
+                    "actual_absence_hours": 8.0,
+                    "actual_absence_days": 1.0,
+                    "paid_leave": "Y",
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_transform_employee_leave_complete(
+    all_tasks_pipeline_name,
+    task_extract_dw_employee_leave_complete,
+    task_shared_extract_qb_employee_appointments_complete,
+):
+    from hrqb.tasks.employee_leave import TransformEmployeeLeave
+
+    task = TransformEmployeeLeave(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_employee_leave(
+    all_tasks_pipeline_name, task_transform_employee_leave_complete
+):
+    from hrqb.tasks.employee_leave import LoadEmployeeLeave
+
+    return LoadEmployeeLeave(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_transform_employee_leave_types_complete(
+    all_tasks_pipeline_name,
+    task_transform_employee_leave_complete,
+):
+    from hrqb.tasks.employee_leave_types import TransformEmployeeLeaveTypes
+
+    task = TransformEmployeeLeaveTypes(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task

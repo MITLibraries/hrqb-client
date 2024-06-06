@@ -26,3 +26,11 @@ def test_task_transform_employee_salary_change_types_required_fields(
     assert {"Salary Change Type"} == set(
         task_transform_employee_salary_change_types_complete.get_dataframe().columns
     )
+
+
+def test_task_transform_employee_leave_types_required_fields(
+    task_transform_employee_leave_types_complete,
+):
+    assert {"Leave Type", "Paid Leave", "Accrue Seniority"} == set(
+        task_transform_employee_leave_types_complete.get_dataframe().columns
+    )
