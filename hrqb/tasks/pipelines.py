@@ -12,12 +12,14 @@ class FullUpdate(HRQBPipelineTask):
 
     def requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
         from hrqb.tasks.employee_appointments import LoadEmployeeAppointments
+        from hrqb.tasks.employee_leave import LoadEmployeeLeave
         from hrqb.tasks.employee_salary_history import LoadEmployeeSalaryHistory
         from hrqb.tasks.employees import LoadEmployees
 
         yield LoadEmployees(pipeline=self.pipeline_name)
         yield LoadEmployeeAppointments(pipeline=self.pipeline_name)
         yield LoadEmployeeSalaryHistory(pipeline=self.pipeline_name)
+        yield LoadEmployeeLeave(pipeline=self.pipeline_name)
 
 
 class UpdateLibHRData(HRQBPipelineTask):
