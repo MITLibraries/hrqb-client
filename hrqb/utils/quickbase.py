@@ -158,6 +158,7 @@ class QBClient:
         table_id: str,
         records: list[dict],
         merge_field: str | None = None,
+        return_fields: bool = False,  # noqa: FBT001, FBT002
     ) -> dict:
         """Prepare an API payload for upsert.
 
@@ -176,7 +177,7 @@ class QBClient:
         upsert_payload = {
             "to": table_id,
             "data": mapped_records,
-            "fieldsToReturn": list(field_map.values()),
+            "fieldsToReturn": list(field_map.values()) if return_fields else [],
         }
         if merge_field:
             upsert_payload["mergeFieldId"] = field_map[merge_field]
