@@ -1,4 +1,7 @@
-# ruff: noqa: PLR2004, PD901
+# ruff: noqa: PLR2004, PD901, SLF001
+
+import numpy as np
+import pandas as pd
 
 from hrqb.utils import md5_hash_from_values
 
@@ -59,4 +62,53 @@ def test_task_transform_employee_salary_history_key_expected_from_input_data(
             emp_salary_row["Start Date"],
             emp_salary_row["End Date"],
         ]
+    )
+
+
+def test_task_transform_employee_salary_history_set_base_change_percent(
+    task_transform_employee_salary_history_complete,
+):
+    df = pd.DataFrame(
+        [
+            ("123456789", "123", "2020-01-01", "2021-06-30", 10_000),
+            ("123456789", "123", "2020-07-01", "2021-12-31", 10_300),
+            ("123456789", "123", "2021-01-01", "2021-06-30", 15_000),
+            ("123456789", "456", "2021-07-01", "2022-06-30", 20_000),
+            ("123456789", "456", "2022-07-01", "2022-12-31", 22_500),
+            ("123456789", "456", "2023-01-01", "2999-12-31", 24_750),
+        ],
+        columns=[
+            "mit_id",
+            "hr_appt_key",
+            "appointment_begin_date",
+            "appointment_end_date",
+            "original_base_amount",
+        ],
+    )
+    new_df = (
+        task_transform_employee_salary_history_complete._set_base_salary_change_percent(
+            df
+        )
+    )
+    np.testing.assert_array_equal(
+        new_df.previous_base_amount.values,
+        [
+            np.nan,  # first position, so no previous salary
+            10_000.0,
+            10_300.0,
+            np.nan,  # new position, so previous salary None
+            20_000.0,
+            22_500.0,
+        ],
+    )
+    np.testing.assert_array_equal(
+        new_df.base_change_percent.values,
+        [
+            0.0,  # first position, so no change
+            0.03,
+            0.456,
+            0.0,  # new position, so no change
+            0.125,
+            0.1,
+        ],
     )
