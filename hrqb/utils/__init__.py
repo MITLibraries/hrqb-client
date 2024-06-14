@@ -1,6 +1,7 @@
 """hrqb.utils"""
 
 import datetime
+import hashlib
 import logging
 
 import click
@@ -60,3 +61,15 @@ def us_state_abbreviation_to_name(abbreviation: str | None) -> str | None:
     if state:
         return state.name
     return None
+
+
+def md5_hash_from_values(values: list[str]) -> str:
+    """Create an MD5 hash from an ordered list of values.
+
+    This function is used by some Transform tasks to mint a deterministic, unique value
+    that can be used as merge fields in Quickbase during upserts.
+
+    NOTE: the order of values in the provided list will affect the MD5 hash created.
+    """
+    data_string = "|".join(values).encode()
+    return hashlib.md5(data_string).hexdigest()  # noqa: S324

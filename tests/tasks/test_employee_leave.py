@@ -1,5 +1,7 @@
 # ruff: noqa: PLR2004, PD901, SLF001
 
+from hrqb.utils import md5_hash_from_values
+
 
 def test_extract_dw_employee_leave_load_sql_query(
     task_extract_dw_employee_leave_complete,
@@ -26,34 +28,17 @@ def test_task_transform_employee_leave_oracle_bools_converted(
     assert row["Accrue Seniority"] == "Yes"
 
 
-def test_task_transform_employee_leave_create_key_from_md5_of_leave_data(
-    task_transform_employee_leave_complete,
-):
-    assert (
-        task_transform_employee_leave_complete._create_unique_key_from_leave_data(
-            "123456789", "2010-07-01", "Vacation", "8.0"
-        )
-        == "ee9af1a7908735241aeb5c228e2e00fa"
-    )
-    assert (
-        task_transform_employee_leave_complete._create_unique_key_from_leave_data(
-            "123456789", "2010-07-01", "Vacation", "None"
-        )
-        == "767d2672e2e6b38a7c65f0ea2f799067"
-    )
-
-
 def test_task_transform_employee_leave_key_expected_from_row_data(
     task_transform_employee_leave_complete,
 ):
     row = task_transform_employee_leave_complete.get_dataframe().iloc[0]
-    assert row[
-        "Key"
-    ] == task_transform_employee_leave_complete._create_unique_key_from_leave_data(
-        row["MIT ID"],
-        row["Leave Date"],
-        row["Related Leave Type"],
-        str(row["Duration Hours"]),
+    assert row["Key"] == md5_hash_from_values(
+        [
+            row["MIT ID"],
+            row["Leave Date"],
+            row["Related Leave Type"],
+            str(row["Duration Hours"]),
+        ]
     )
 
 

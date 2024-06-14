@@ -4,7 +4,7 @@ import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
 from hrqb.base.task import PandasPickleTask, QuickbaseUpsertTask, SQLQueryExtractTask
-from hrqb.utils import normalize_dataframe_dates
+from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
 from hrqb.utils.quickbase import QBClient
 
 
@@ -95,6 +95,19 @@ class TransformEmployeeAppointments(PandasPickleTask):
             ],
         )
 
+        # mint a unique, deterministic value for the merge "Key" field
+        emp_appts_df["key"] = emp_appts_df.apply(
+            lambda row: md5_hash_from_values(
+                [
+                    row.mit_id,
+                    row.position_id,
+                    row.appt_begin_date,
+                    row.appt_end_date,
+                ]
+            ),
+            axis=1,
+        )
+
         fields = {
             "hr_appt_key": "HR Appointment Key",
             "mit_id": "MIT ID",
@@ -116,6 +129,7 @@ class TransformEmployeeAppointments(PandasPickleTask):
             "union_name": "Union Name",
             "term_or_perm": "Term or Permanent",
             "benefits_group_type": "Benefits Group Type",
+            "key": "Key",
         }
 
         return emp_appts_df[fields.keys()].rename(columns=fields)
@@ -140,9 +154,8 @@ class LoadEmployeeAppointments(QuickbaseUpsertTask):
 
     @property
     def merge_field(self) -> str | None:
-        return "HR Appointment Key"
+        return "Key"
 
     @property
     def input_task_to_load(self) -> str:
-        """Upsert data from parent task 'TransformEmployeeAppointments'."""
         return "TransformEmployeeAppointments"

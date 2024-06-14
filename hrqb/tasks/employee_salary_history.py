@@ -4,7 +4,7 @@ import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
 from hrqb.base.task import PandasPickleTask, QuickbaseUpsertTask, SQLQueryExtractTask
-from hrqb.utils import normalize_dataframe_dates
+from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
 
 
 class ExtractDWEmployeeSalaryHistory(SQLQueryExtractTask):
@@ -33,8 +33,19 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         qb_emp_appts_df = self.named_inputs["ExtractQBEmployeeAppointments"].read()
 
         # merge with employee appointment data for QB appointment record identifier
-        qb_emp_appts_df = qb_emp_appts_df[["Record ID#", "HR Appointment Key"]].rename(
-            columns={"Record ID#": "related_employee_appointment_id"}
+        qb_emp_appts_df = qb_emp_appts_df[
+            [
+                "Record ID#",
+                "HR Appointment Key",
+                "Begin Date",
+                "End Date",
+            ]
+        ].rename(
+            columns={
+                "Record ID#": "related_employee_appointment_id",
+                "Begin Date": "appointment_begin_date",
+                "End Date": "appointment_end_date",
+            }
         )
         salary_df = dw_salary_df.merge(
             qb_emp_appts_df,
@@ -52,6 +63,21 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         salary_df["original_effort"] = salary_df["original_effort"] / 100.0
         salary_df["temp_effort"] = salary_df["temp_effort"] / 100.0
 
+        # mint a unique, deterministic value for the merge "Key" field
+        salary_df["key"] = salary_df.apply(
+            lambda row: md5_hash_from_values(
+                [
+                    row.mit_id,
+                    row.position_id,
+                    row.appointment_begin_date,
+                    row.appointment_end_date,
+                    row.start_date,
+                    row.end_date,
+                ]
+            ),
+            axis=1,
+        )
+
         fields = {
             "hr_appt_tx_key": "HR Appointment Transaction Key",
             "mit_id": "MIT ID",
@@ -67,6 +93,7 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             "temp_change_base_amount": "Temp Base Salary",
             "temp_change_hourly_rate": "Temp Hourly",
             "temp_effort": "Temp Effort %",
+            "key": "Key",
         }
         return salary_df[fields.keys()].rename(columns=fields)
 
@@ -85,7 +112,7 @@ class LoadEmployeeSalaryHistory(QuickbaseUpsertTask):
 
     @property
     def merge_field(self) -> str | None:
-        return "HR Appointment Transaction Key"
+        return "Key"
 
     @property
     def input_task_to_load(self) -> str | None:
