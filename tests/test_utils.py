@@ -4,11 +4,13 @@ import datetime
 
 import numpy as np
 import pandas as pd
+import pytest
 from freezegun import freeze_time
 
 from hrqb.utils import (
     click_argument_to_dict,
     convert_oracle_bools_to_qb_bools,
+    md5_hash_from_values,
     normalize_dataframe_dates,
     normalize_date,
     today_date,
@@ -113,3 +115,26 @@ def test_convert_oracle_bools_to_qb_bools_success():
             ]
         )
     )
+
+
+def test_md5_hash_from_values_gives_expected_results():
+    assert md5_hash_from_values(["a", "b", "c"]) == "2e077b3ec5932ac3cf914ebdf242b4ee"
+
+
+def test_md5_hash_from_values_order_of_strings_different_results():
+    assert md5_hash_from_values(["a", "b"]) != md5_hash_from_values(["b", "a"])
+
+
+def test_md5_hash_from_values_raise_error_for_non_string_value():
+    with pytest.raises(TypeError, match="NoneType found"):
+        md5_hash_from_values(["a", "b", None])
+    with pytest.raises(TypeError, match="int found"):
+        md5_hash_from_values(["a", "b", 42])
+    with pytest.raises(TypeError, match="datetime found"):
+        md5_hash_from_values(
+            [
+                "a",
+                "b",
+                datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC),
+            ]
+        )

@@ -2,7 +2,6 @@
 
 # ruff: noqa: S324
 
-import hashlib
 
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
@@ -12,7 +11,11 @@ from hrqb.base.task import (
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
 )
-from hrqb.utils import convert_oracle_bools_to_qb_bools, normalize_dataframe_dates
+from hrqb.utils import (
+    convert_oracle_bools_to_qb_bools,
+    md5_hash_from_values,
+    normalize_dataframe_dates,
+)
 
 
 class ExtractDWEmployeeLeave(SQLQueryExtractTask):
@@ -63,13 +66,15 @@ class TransformEmployeeLeave(PandasPickleTask):
             leaves_df, columns=["paid_leave", "accrue_seniority"]
         )
 
-        # mint a unique, deterministic value for the "Key" field in Employee Leave table
+        # mint a unique, deterministic value for the merge "Key" field
         leaves_df["key"] = leaves_df.apply(
-            lambda row: self._create_unique_key_from_leave_data(
-                row.mit_id,
-                row.absence_date,
-                row.absence_type,
-                row.actual_absence_hours,
+            lambda row: md5_hash_from_values(
+                [
+                    row.mit_id,
+                    row.absence_date,
+                    row.absence_type,
+                    str(row.actual_absence_hours),
+                ]
             ),
             axis=1,
         )
@@ -86,37 +91,6 @@ class TransformEmployeeLeave(PandasPickleTask):
             "related_employee_appointment_id": "Related Employee Appointment",
         }
         return leaves_df[fields.keys()].rename(columns=fields)
-
-    @staticmethod
-    def _create_unique_key_from_leave_data(
-        mit_id: str,
-        absence_date: str,
-        absence_type: str,
-        absence_hours: str | float,
-    ) -> str:
-        """Create unique, deterministic MD5 hash based on select leave attributes.
-
-        Most tables in Quickbase have a complimentary unique value in the data warehouse
-        to use as a merge field: Employees have MIT ID, Employee Appointments have "HR Job
-        Key", Salary adjustments have "HR TXN (Transaction) Key", etc.  However, absence
-        data in the data warehouse does not have such a column or value that can be used
-        to unambiguously and deterministically identify an absence row.
-
-        For this reason, an MD5 hash is created from attributes from the leave data that,
-        in combination, is unique: MIT ID and Absence date, type, and duration.  By
-        including this MD5 hash in Quickbase as a field, we can use this in future data
-        loads as a merge field to avoid duplicating what are effectively the same absence
-        record.
-        """
-        data_string = "|".join(
-            [
-                mit_id,
-                absence_date,
-                absence_type,
-                str(absence_hours),
-            ]
-        ).encode()
-        return hashlib.md5(data_string).hexdigest()
 
 
 class LoadEmployeeLeave(QuickbaseUpsertTask):
