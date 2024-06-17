@@ -3,7 +3,6 @@
 import datetime
 import hashlib
 import logging
-from typing import Any
 
 import click
 import pandas as pd
@@ -44,7 +43,7 @@ def convert_dataframe_columns_to_dates(
     """
 
     def convert_to_date(
-        value: Any,  # noqa: ANN401
+        value: str | datetime.datetime | pd.Timestamp,
     ) -> datetime.datetime | pd.Timestamp | None:
         if isinstance(value, str):
             return date_parser(value).replace(tzinfo=datetime.UTC)
