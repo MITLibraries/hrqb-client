@@ -3,6 +3,7 @@
 import datetime
 import hashlib
 import logging
+from typing import Any
 
 import click
 import pandas as pd
@@ -29,6 +30,31 @@ def normalize_date(date: str | datetime.datetime) -> str | None:
     if isinstance(date, datetime.datetime):
         return date.strftime("%Y-%m-%d")
     return None
+
+
+def convert_dataframe_columns_to_dates(
+    df: pd.DataFrame, columns: list[str]
+) -> pd.DataFrame:
+    """Convert select columns from a dataframe to datetime objects.
+
+    This more manual approach avoids a pandas error with pd.to_datetime() when the date
+    exceeds 2262-04-11.  Normally this would not be a problem, but employee appointments
+    that are ongoing receive a datetime of 2999-12-31. See: https://pandas.pydata.org/
+    pandas-docs/stable/user_guide/timeseries.html#timestamp-limitations.
+    """
+
+    def convert_to_date(
+        value: Any,  # noqa: ANN401
+    ) -> datetime.datetime | pd.Timestamp | None:
+        if isinstance(value, str):
+            return date_parser(value).replace(tzinfo=datetime.UTC)
+        if isinstance(value, datetime.datetime | pd.Timestamp):
+            return value.replace(tzinfo=datetime.UTC)
+        return None
+
+    for column in columns:
+        df[column] = df[column].apply(lambda x: convert_to_date(x))
+    return df
 
 
 def normalize_dataframe_dates(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:

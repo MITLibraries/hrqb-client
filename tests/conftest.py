@@ -782,6 +782,10 @@ def task_shared_extract_qb_employee_appointments_complete(all_tasks_pipeline_nam
                     "Position ID": "987654321",
                     "Begin Date": "2010-01-01",
                     "End Date": "2011-12-01",
+                    "MIT ID": "123456789",
+                    "Related Employee Type": "Admin Staff",
+                    "Union Name": "Le Union",
+                    "Exempt / NE": "E",
                 }
             ]
         )
@@ -878,5 +882,39 @@ def task_transform_employee_leave_types_complete(
     from hrqb.tasks.employee_leave_types import TransformEmployeeLeaveTypes
 
     task = TransformEmployeeLeaveTypes(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_transform_performance_reviews_complete(
+    all_tasks_pipeline_name,
+    task_shared_extract_qb_employee_appointments_complete,
+):
+    from hrqb.tasks.performance_reviews import TransformPerformanceReviews
+
+    task = TransformPerformanceReviews(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_performance_reviews_complete(
+    all_tasks_pipeline_name,
+    task_transform_performance_reviews_complete,
+):
+    from hrqb.tasks.performance_reviews import LoadPerformanceReviews
+
+    return LoadPerformanceReviews(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_transform_years_complete(
+    all_tasks_pipeline_name,
+    task_transform_performance_reviews_complete,
+):
+    from hrqb.tasks.years import TransformYears
+
+    task = TransformYears(pipeline=all_tasks_pipeline_name)
     task.run()
     return task
