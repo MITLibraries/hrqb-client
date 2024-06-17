@@ -357,6 +357,25 @@ def mocked_qb_api_getTable(qbclient, global_requests_mock, mocked_table_id):
 
 
 @pytest.fixture
+def mocked_delete_payload(mocked_table_id):
+    return {"from": mocked_table_id, "where": "{3.GT.0}"}
+
+
+@pytest.fixture
+def mocked_qb_api_delete_records(qbclient, mocked_delete_payload, global_requests_mock):
+    url = f"{qbclient.api_base}/records"
+    with open("tests/fixtures/qb_api_responses/deleteRecords.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "DELETE",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_delete_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
 def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
     with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
         mocked_table_fields.return_value = mocked_query_table_fields

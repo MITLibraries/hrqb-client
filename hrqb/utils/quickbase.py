@@ -247,3 +247,29 @@ class QBClient:
             records,
             columns=table_fields_df.label,
         )
+
+    def delete_records(self, table_id: str, where_clause: str) -> dict:
+        """Deleted Records from a Table given a where clause.
+
+        https://developer.quickbase.com/operation/deleteRecords
+        """
+        return self.make_request(
+            requests.delete,
+            "records",
+            cache=False,
+            json={
+                "from": table_id,
+                "where": where_clause,
+            },
+        )
+
+    def delete_all_table_records(self, table_id: str) -> dict:
+        """Delete all records from a Table.
+
+        This is accomplished by retrieving table fields, identifying the 'Record ID#'
+        field ID, and then creating a query that deletes all records where record id is
+        greater than 0 (this is the suggested method for truncating a QB table).
+        """
+        table = self.get_table(table_id)
+        key_field_id = table["keyFieldId"]
+        return self.delete_records(table_id, f"{{{key_field_id}.GT.0}}")
