@@ -5,10 +5,12 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytest
+from dateutil.parser import ParserError  # type: ignore[import-untyped]
 from freezegun import freeze_time
 
 from hrqb.utils import (
     click_argument_to_dict,
+    convert_dataframe_columns_to_dates,
     convert_oracle_bools_to_qb_bools,
     md5_hash_from_values,
     normalize_dataframe_dates,
@@ -138,3 +140,46 @@ def test_md5_hash_from_values_raise_error_for_non_string_value():
                 datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC),
             ]
         )
+
+
+def test_convert_dataframe_columns_to_dates_conversion_success():
+    df = pd.DataFrame(
+        [
+            {
+                "foo": "2000-01-01",
+                "bar": "horse",
+            },
+            {
+                "foo": datetime.datetime(2020, 6, 1, tzinfo=datetime.UTC),
+                "bar": "zebra",
+            },
+            {
+                "foo": 42,
+                "bar": "giraffe",
+            },
+        ]
+    )
+    assert convert_dataframe_columns_to_dates(df, ["foo"]).equals(
+        pd.DataFrame(
+            [
+                {
+                    "foo": datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC),
+                    "bar": "horse",
+                },
+                {
+                    "foo": datetime.datetime(2020, 6, 1, tzinfo=datetime.UTC),
+                    "bar": "zebra",
+                },
+                {
+                    "foo": None,
+                    "bar": "giraffe",
+                },
+            ]
+        )
+    )
+
+
+def test_convert_dataframe_columns_to_dates_bad_date_raise_error():
+    df = pd.DataFrame([{"foo": "I CANNOT BE PARSED", "bar": "horse"}])
+    with pytest.raises(ParserError, match="Unknown string format: I CANNOT BE PARSED"):
+        assert convert_dataframe_columns_to_dates(df, ["foo"])

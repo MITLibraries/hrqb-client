@@ -15,11 +15,13 @@ class FullUpdate(HRQBPipelineTask):
         from hrqb.tasks.employee_leave import LoadEmployeeLeave
         from hrqb.tasks.employee_salary_history import LoadEmployeeSalaryHistory
         from hrqb.tasks.employees import LoadEmployees
+        from hrqb.tasks.performance_reviews import LoadPerformanceReviews
 
         yield LoadEmployees(pipeline=self.pipeline_name)
         yield LoadEmployeeAppointments(pipeline=self.pipeline_name)
         yield LoadEmployeeSalaryHistory(pipeline=self.pipeline_name)
         yield LoadEmployeeLeave(pipeline=self.pipeline_name)
+        yield LoadPerformanceReviews(pipeline=self.pipeline_name)
 
 
 class UpdateLibHRData(HRQBPipelineTask):

@@ -34,3 +34,11 @@ def test_task_transform_employee_leave_types_required_fields(
     assert {"Leave Type", "Paid Leave", "Accrue Seniority"} == set(
         task_transform_employee_leave_types_complete.get_dataframe().columns
     )
+
+
+def test_task_transform_years_required_fields(
+    task_transform_years_complete,
+):
+    assert {"Year", "Active Year"} == set(
+        task_transform_years_complete.get_dataframe().columns
+    )

@@ -212,3 +212,19 @@ def test_qbclient_parse_upsert_results_response_success(qbclient, mocked_qb_api_
 
 def test_qbclient_parse_upsert_results_response_error_return_none(qbclient):
     assert qbclient.parse_upsert_results({"msg": "bad API response"}) is None
+
+
+def test_qbclient_delete_records_success(
+    qbclient, mocked_delete_payload, mocked_qb_api_delete_records
+):
+    table_id = mocked_delete_payload["from"]
+    query = mocked_delete_payload["where"]
+    assert qbclient.delete_records(table_id, query) == mocked_qb_api_delete_records
+
+
+def test_qbclient_delete_all_table_records_success(
+    qbclient, mocked_table_id, mocked_qb_api_delete_records
+):
+    assert (
+        qbclient.delete_all_table_records(mocked_table_id) == mocked_qb_api_delete_records
+    )

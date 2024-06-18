@@ -357,6 +357,25 @@ def mocked_qb_api_getTable(qbclient, global_requests_mock, mocked_table_id):
 
 
 @pytest.fixture
+def mocked_delete_payload(mocked_table_id):
+    return {"from": mocked_table_id, "where": "{3.GT.0}"}
+
+
+@pytest.fixture
+def mocked_qb_api_delete_records(qbclient, mocked_delete_payload, global_requests_mock):
+    url = f"{qbclient.api_base}/records"
+    with open("tests/fixtures/qb_api_responses/deleteRecords.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.register_uri(
+        "DELETE",
+        url,
+        additional_matcher=lambda req: req.json() == mocked_delete_payload,
+        json=api_response,
+    )
+    return api_response
+
+
+@pytest.fixture
 def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
     with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
         mocked_table_fields.return_value = mocked_query_table_fields
@@ -763,6 +782,10 @@ def task_shared_extract_qb_employee_appointments_complete(all_tasks_pipeline_nam
                     "Position ID": "987654321",
                     "Begin Date": "2010-01-01",
                     "End Date": "2011-12-01",
+                    "MIT ID": "123456789",
+                    "Related Employee Type": "Admin Staff",
+                    "Union Name": "Le Union",
+                    "Exempt / NE": "E",
                 }
             ]
         )
@@ -859,5 +882,39 @@ def task_transform_employee_leave_types_complete(
     from hrqb.tasks.employee_leave_types import TransformEmployeeLeaveTypes
 
     task = TransformEmployeeLeaveTypes(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_transform_performance_reviews_complete(
+    all_tasks_pipeline_name,
+    task_shared_extract_qb_employee_appointments_complete,
+):
+    from hrqb.tasks.performance_reviews import TransformPerformanceReviews
+
+    task = TransformPerformanceReviews(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_performance_reviews_complete(
+    all_tasks_pipeline_name,
+    task_transform_performance_reviews_complete,
+):
+    from hrqb.tasks.performance_reviews import LoadPerformanceReviews
+
+    return LoadPerformanceReviews(pipeline=all_tasks_pipeline_name)
+
+
+@pytest.fixture
+def task_transform_years_complete(
+    all_tasks_pipeline_name,
+    task_transform_performance_reviews_complete,
+):
+    from hrqb.tasks.years import TransformYears
+
+    task = TransformYears(pipeline=all_tasks_pipeline_name)
     task.run()
     return task
