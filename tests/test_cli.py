@@ -14,11 +14,7 @@ def text_in_logs_or_stdout(text, caplog: LogCaptureFixture, result: Result):
     Workaround for pytest irregularities where logging and stdout are mixed for CLI output
     and luigi logging.
     """
-    if text in caplog.text:
-        return True
-    if text in result.output:
-        return True
-    return False
+    return text in caplog.text or text in result.output
 
 
 def test_cli_no_subcommand(runner):
