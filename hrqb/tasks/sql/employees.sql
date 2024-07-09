@@ -3,8 +3,31 @@ Query for Employee data.
 
 CHANGELOG
     - 2024-05-13 Query created and added
+    - 2024-07-09 Added CTEs to gather last appointment transaction, to get termination
+        or retirement reason
 */
 
+with ordered_appt_txns as (
+    select
+        a.MIT_ID,
+        at.HR_PERSONNEL_ACTION,
+        at.HR_ACTION_REASON,
+        row_number() over (
+            partition by a.MIT_ID
+            order by a.APPT_TX_BEGIN_DATE desc, a.APPT_TX_END_DATE desc
+        ) as tx_row_num
+    from HR_APPT_TX_DETAIL a
+    left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
+    where at.HR_PERSONNEL_ACTION in ('Termination','Retirement')
+),
+last_appt_txn as (
+    select
+        MIT_ID,
+        HR_PERSONNEL_ACTION,
+        HR_ACTION_REASON
+    from ordered_appt_txns
+    where tx_row_num = 1
+)
 select
     e.MIT_ID,
     e.FIRST_NAME,
@@ -36,8 +59,11 @@ select
     ROUND(MONTHS_BETWEEN(SYSDATE, e.ORIGINAL_HIRE_DATE) / 12, 2) AS YRS_OF_MIT_SERV,
     e.YRS_OF_SERVICE as YRS_OF_PROF_EXPR,
     e.I9_FORM_EXPIRATION_DATE,
-    e.RESIDENCY_STATUS
+    e.RESIDENCY_STATUS,
+    lat.HR_PERSONNEL_ACTION as TERMINATION_ACTION,
+    lat.HR_ACTION_REASON as TERMINATION_REASON
 from HR_PERSON_EMPLOYEE e
+left join last_appt_txn lat on lat.MIT_ID = e.MIT_ID
 where e.MIT_ID in (
     select
         a.MIT_ID

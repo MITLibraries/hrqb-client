@@ -486,6 +486,7 @@ def task_extract_dw_employees_dw_dataframe():
                 "yrs_of_mit_serv": "14",
                 "yrs_of_prof_expr": "20",
                 "i9_form_expiration_date": np.nan,  # Null value from pandas.read_sql()
+                "termination_reason": "Another Job",
             }
         ]
     )

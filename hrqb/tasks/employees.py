@@ -75,6 +75,7 @@ class TransformEmployees(PandasPickleTask):
             "yrs_of_mit_serv": "MIT Years of Service",
             "yrs_of_prof_expr": "Years of Professional Experience",
             "i9_form_expiration_date": "I9 Expiration Date",
+            "termination_reason": "Termination Type",
         }
         return employees_df[fields.keys()].rename(columns=fields)
 
