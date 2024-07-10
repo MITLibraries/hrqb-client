@@ -7,7 +7,7 @@ CHANGELOG
         or retirement reason
 */
 
-with ordered_appt_txns as (
+with ordered_appt_txn as (
     select
         a.MIT_ID,
         at.HR_PERSONNEL_ACTION,
@@ -15,7 +15,7 @@ with ordered_appt_txns as (
         row_number() over (
             partition by a.MIT_ID
             order by a.APPT_TX_BEGIN_DATE desc, a.APPT_TX_END_DATE desc
-        ) as tx_row_num
+        ) as txn_row_num
     from HR_APPT_TX_DETAIL a
     left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
     where at.HR_PERSONNEL_ACTION in ('Termination','Retirement')
@@ -25,8 +25,8 @@ last_appt_txn as (
         MIT_ID,
         HR_PERSONNEL_ACTION,
         HR_ACTION_REASON
-    from ordered_appt_txns
-    where tx_row_num = 1
+    from ordered_appt_txn
+    where txn_row_num = 1
 )
 select
     e.MIT_ID,
