@@ -2,6 +2,7 @@
 
 import json
 import logging
+from collections import defaultdict
 from collections.abc import Callable, Iterator
 
 import pandas as pd
@@ -142,16 +143,27 @@ class QBClient:
 
     @staticmethod
     def parse_upsert_results(api_response: dict) -> dict | None:
-        """Parse Record IDs and counts from API response from upsert."""
+        """Parse counts of modified records and errors from upsert."""
         metadata = api_response.get("metadata")
         if not metadata:
             return None
-        return {
+
+        results = {
             "processed": metadata.get("totalNumberOfRecordsProcessed", 0),
-            "created": metadata.get("createdRecordIds", []),
-            "updated": metadata.get("updatedRecordIds", []),
-            "unchanged": metadata.get("unchangedRecordIds", []),
+            "created": len(metadata.get("createdRecordIds", [])),
+            "updated": len(metadata.get("updatedRecordIds", [])),
+            "unchanged": len(metadata.get("unchangedRecordIds", [])),
+            "errors": None,
         }
+
+        if api_errors := metadata.get("lineErrors"):
+            api_error_counts: dict[str, int] = defaultdict(int)
+            for errors in api_errors.values():
+                for error in errors:
+                    api_error_counts[error] += 1
+            results["errors"] = api_error_counts
+
+        return results
 
     def prepare_upsert_payload(
         self,

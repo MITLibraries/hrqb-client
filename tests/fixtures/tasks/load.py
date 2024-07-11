@@ -1,3 +1,5 @@
+import json
+
 import luigi
 
 from hrqb.base import QuickbaseUpsertTask
@@ -20,9 +22,10 @@ class LoadAnimalsDebug(QuickbaseUpsertTask):
         return [PrepareAnimals(pipeline=self.pipeline)]
 
     def run(self):
-        """Override default method to print data instead of upsert to Quickbase."""
+        """Override default method to print input data and simulate successful upsert."""
         print(self.single_input_dataframe)  # noqa: T201
-        self.target.write({"note": "data printed to console"})
+        with open("tests/fixtures/qb_api_responses/upsert.json") as f:
+            self.target.write(json.load(f))
 
 
 class LoadTaskMultipleRequired(QuickbaseUpsertTask):

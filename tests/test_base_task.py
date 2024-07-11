@@ -16,8 +16,13 @@ from hrqb.base import (
 )
 from hrqb.config import Config
 from hrqb.utils.data_warehouse import DWClient
+from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.tasks.extract import ExtractAnimalNames
 from tests.fixtures.tasks.load import LoadTaskMultipleRequired
+
+
+def test_base_task_name(task_extract_animal_names):
+    assert task_extract_animal_names.name == "ExtractAnimalNames"
 
 
 def test_base_task_required_parameter_pipeline(pipeline_name):
@@ -134,7 +139,15 @@ def test_quickbase_task_run_upsert_and_json_receipt_output_target_success(
     task_transform_animals_target, task_load_animals
 ):
     """Mocks upsert to Quickbase, asserting mocked response is written as Target data"""
-    mocked_qb_upsert_receipt = {"message": "upserted to Animals QB Table"}
+    mocked_qb_upsert_receipt = {
+        "data": [],
+        "metadata": {
+            "createdRecordIds": [11, 12],
+            "totalNumberOfRecordsProcessed": 2,
+            "unchangedRecordIds": [],
+            "updatedRecordIds": [],
+        },
+    }
 
     with mock.patch("hrqb.base.task.QBClient", autospec=True) as mock_qbclient_class:
         mock_qbclient = mock_qbclient_class()
@@ -172,7 +185,7 @@ def test_quickbase_task_run_upsert_and_json_receipt_output_target_api_errors_log
 
         task_load_animals.run()
 
-    assert "Quickbase API call completed but had errors" in caplog.text
+    assert "errors" in task_load_animals.parse_upsert_counts
 
 
 def test_base_pipeline_name(task_pipeline_animals):
@@ -275,3 +288,71 @@ def test_quickbase_task_input_task_to_load_property_used(
     assert task.input_task_to_load == "ExtractAnimalColors"
     input_dict = task.get_records()
     assert pd.DataFrame(input_dict).equals(task_extract_animal_colors_target.read())
+
+
+def test_base_pipeline_task_aggregate_upsert_results_one_success_returns_dict(
+    task_pipeline_animals_debug,
+):
+    run_pipeline(task_pipeline_animals_debug)
+
+    assert task_pipeline_animals_debug.aggregate_upsert_results() == {
+        "tasks": {
+            "LoadAnimalsDebug": {
+                "processed": 3,
+                "created": 2,
+                "updated": 1,
+                "unchanged": 0,
+                "errors": None,
+            }
+        },
+        "qb_upsert_errors": False,
+    }
+
+
+def test_base_pipeline_task_aggregate_upsert_results_failed_load_returns_none_value(
+    task_pipeline_animals_debug,
+):
+
+    # mock run() method of LoadAnimalsDebug to throw exception
+    load_task = task_pipeline_animals_debug.get_task("LoadAnimalsDebug")
+    with mock.patch.object(load_task, "run") as mocked_run:
+        mocked_run.side_effect = Exception("UPSERT FAILED!")
+        run_pipeline(task_pipeline_animals_debug)
+
+    assert task_pipeline_animals_debug.aggregate_upsert_results() == {
+        "qb_upsert_errors": False,
+        "tasks": {"LoadAnimalsDebug": None},
+    }
+
+
+def test_base_pipeline_task_aggregate_upsert_results_upsert_with_errors_noted(
+    task_pipeline_animals_debug,
+):
+    run_pipeline(task_pipeline_animals_debug)
+
+    # manually modify output of load task to simulate upsert errors
+    load_task = task_pipeline_animals_debug.get_task("LoadAnimalsDebug")
+    new_target = load_task.target.read()
+    new_target["metadata"]["lineErrors"] = {
+        "2": ['Incompatible value for field with ID "6".'],
+        "4": ['Incompatible value for field with ID "6".'],
+        "5": ["Weird Error", "Another Weird Error"],
+    }
+    load_task.target.write(new_target)
+
+    assert task_pipeline_animals_debug.aggregate_upsert_results() == {
+        "tasks": {
+            "LoadAnimalsDebug": {
+                "processed": 3,
+                "created": 2,
+                "updated": 1,
+                "unchanged": 0,
+                "errors": {
+                    'Incompatible value for field with ID "6".': 2,
+                    "Weird Error": 1,
+                    "Another Weird Error": 1,
+                },
+            }
+        },
+        "qb_upsert_errors": True,
+    }
