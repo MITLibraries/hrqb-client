@@ -215,6 +215,7 @@ class QuickbaseUpsertTask(HRQBTask):
 
     @property
     def parse_upsert_counts(self) -> dict | None:
+        """Parse results of upsert via QBClient method, if target data exists from run."""
         if self.target.exists():
             return QBClient.parse_upsert_results(self.target.read())
         return None
