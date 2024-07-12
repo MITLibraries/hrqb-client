@@ -1,8 +1,10 @@
+import copy
 import logging
 import os
 from typing import Any
 
 import sentry_sdk
+from sentry_sdk.types import Event
 
 
 class Config:
@@ -75,6 +77,34 @@ def configure_sentry() -> str:
     env = os.getenv("WORKSPACE")
     sentry_dsn = os.getenv("SENTRY_DSN")
     if sentry_dsn and sentry_dsn.lower() != "none":
-        sentry_sdk.init(sentry_dsn, environment=env)
+        sentry_sdk.init(
+            sentry_dsn,
+            environment=env,
+            before_send=sentry_before_send_callback,
+        )
         return f"Sentry DSN found, exceptions will be sent to Sentry with env={env}"
     return "No Sentry DSN found, exceptions will not be sent to Sentry"
+
+
+def sentry_before_send_callback(event: Event, _hint: dict) -> Event:
+    """Callback for modifying sentry event data before sending.
+
+    This function is difficult to mock given how it's registered with sentry_sdk.init(),
+    where calling another functions for the actual work allows for mocking there.
+    """
+    return _remove_sensitive_scope_variables(event)
+
+
+def _remove_sensitive_scope_variables(event: Event) -> Event:
+    """Removes sensitive data from Sentry event.
+
+    copy.deepcopy() is used to allow testing of the original object and the returned
+    object separately.
+    """
+    new_event = copy.deepcopy(event)
+    if "exception" in new_event:
+        for exc_type in new_event["exception"]["values"]:
+            for stacktrace in exc_type.get("stacktrace", {}).get("frames", []):
+                for item in ["vars", "pre_context", "post_context"]:
+                    stacktrace.pop(item, None)
+    return new_event
