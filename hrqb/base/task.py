@@ -1,10 +1,8 @@
 """hrqb.base.task"""
 
-import json
 import logging
 import os
 from abc import abstractmethod
-from collections import defaultdict
 from collections.abc import Iterator
 from typing import Literal
 
@@ -19,6 +17,9 @@ from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)
 
+successful_tasks = []
+successful_upsert_tasks = []
+
 
 class HRQBTask(luigi.Task):
     """Base Task class for all HRQB Tasks."""
@@ -26,6 +27,10 @@ class HRQBTask(luigi.Task):
     pipeline = luigi.Parameter()
     stage: Literal["Extract", "Transform", "Load"] = luigi.Parameter()
     table_name = luigi.OptionalStrParameter(default=None)
+
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
 
     @property
     def path(self) -> str:
@@ -44,9 +49,7 @@ class HRQBTask(luigi.Task):
         likely) contain a single underscore.
         """
         filename = (
-            "__".join(  # noqa: FLY002
-                [self.pipeline, self.stage, self.__class__.__name__]
-            )
+            "__".join([self.pipeline, self.stage, self.name])  # noqa: FLY002
             + self.filename_extension
         )
         return os.path.join(Config().targets_directory(), filename)
@@ -98,9 +101,14 @@ class HRQBTask(luigi.Task):
         access a specific parent Task's output.
         """
         return {
-            task.__class__.__name__: target
+            task.name: target
             for task, target in list(zip(self.deps(), self.input(), strict=True))
         }
+
+
+@HRQBTask.event_handler(luigi.Event.SUCCESS)
+def task_success_handler(task: HRQBTask) -> None:
+    successful_tasks.append(task)
 
 
 class PandasPickleTask(HRQBTask):
@@ -205,6 +213,13 @@ class QuickbaseUpsertTask(HRQBTask):
             table_name=self.table_name,
         )
 
+    @property
+    def parse_upsert_counts(self) -> dict | None:
+        """Parse results of upsert via QBClient method, if target data exists from run."""
+        if self.target.exists():
+            return QBClient.parse_upsert_results(self.target.read())
+        return None
+
     def get_records(self) -> list[dict]:
         """Get Records data that will be upserted to Quickbase.
 
@@ -248,39 +263,12 @@ class QuickbaseUpsertTask(HRQBTask):
         )
         results = qbclient.upsert_records(upsert_payload)
 
-        self.parse_and_log_upsert_results(results)
-        self.parse_and_log_upsert_errors(results)
-
         self.target.write(results)
 
-    def parse_and_log_upsert_results(self, api_response: dict) -> None:
-        """Parse Quickbase upsert response and log counts of records modified."""
-        record_counts = QBClient.parse_upsert_results(api_response)
-        if not record_counts:
-            return  # pragma: nocover
-        for key in ["created", "updated", "unchanged"]:
-            record_counts[key] = len(record_counts[key])
-        message = f"Upsert results: {record_counts}"
-        logger.info(message)
 
-    def parse_and_log_upsert_errors(self, api_response: dict) -> None:
-        """Parse Quickbase upsert response and log any errors.
-
-        Errors are returned for each record upserted, for each field with issues.  This is
-        an unnecessary level of grain for logging, so the field error types are counted
-        across all records and logged.  This gives a high level overview of fields that
-        are failing, and how often, where further debugging would involve looking at the
-        response directly in the task output.
-        """
-        if api_errors := api_response.get("metadata", {}).get("lineErrors"):
-            api_error_counts: dict[str, int] = defaultdict(int)
-            for errors in api_errors.values():
-                for error in errors:
-                    api_error_counts[error] += 1
-            message = "Quickbase API call completed but had errors: " + json.dumps(
-                api_error_counts
-            )
-            logger.warning(message)
+@QuickbaseUpsertTask.event_handler(luigi.Event.SUCCESS)
+def upsert_task_success_handler(task: QuickbaseUpsertTask) -> None:
+    successful_upsert_tasks.append(task)
 
 
 class HRQBPipelineTask(luigi.WrapperTask):
@@ -304,8 +292,12 @@ class HRQBPipelineTask(luigi.WrapperTask):
     parent_pipeline_name = luigi.OptionalStrParameter(default=None, significant=False)
 
     @property
+    def name(self) -> str:
+        return self.__class__.__name__
+
+    @property
     def pipeline_name(self) -> str:
-        output = self.__class__.__name__
+        output = self.name
         if self.parent_pipeline_name:
             output = f"{self.parent_pipeline_name}__{output}"
         return output
@@ -322,15 +314,16 @@ class HRQBPipelineTask(luigi.WrapperTask):
         return task_class(**pipeline_parameters or {})
 
     def pipeline_tasks_iter(
-        self, task: luigi.Task | None = None, level: int = 0
+        self,
+        task: HRQBTask | None = None,
+        level: int = 0,
     ) -> Iterator[tuple[int, luigi.Task]]:
         """Yield all Tasks that are part of the dependency chain for this Task.
 
         This method begins with the Pipeline Task itself, then recursively discovers and
         yields parent Tasks as they are required.
         """
-        if task is None:
-            task = self
+        task = task or self
         yield level, task
         for parent_task in task.requires():
             yield from self.pipeline_tasks_iter(task=parent_task, level=level + 1)
@@ -352,7 +345,7 @@ class HRQBPipelineTask(luigi.WrapperTask):
             else task_class_or_name
         )
         for _, task in self.pipeline_tasks_iter():
-            if task.__class__.__name__ == task_class_name:
+            if task.name == task_class_name:
                 return task
         return None
 
@@ -374,3 +367,17 @@ class HRQBPipelineTask(luigi.WrapperTask):
                 target.remove()
                 message = f"Target {target} successfully removed"
                 logger.debug(message)
+
+    def aggregate_upsert_results(self) -> dict | None:
+        """Aggregate upsert results for Load tasks from pipeline run."""
+        if not successful_upsert_tasks:
+            return None
+        results = {"tasks": {}, "qb_upsert_errors": False}
+        for task in successful_upsert_tasks:
+            result = None
+            if task.target.exists():
+                result = QBClient.parse_upsert_results(task.target.read())
+                if result and result.get("errors") is not None:
+                    results["qb_upsert_errors"] = True
+            results["tasks"][task.name] = result  # type: ignore[index]
+        return results

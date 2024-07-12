@@ -204,9 +204,10 @@ def test_qbclient_test_connection_response_error(qbclient):
 def test_qbclient_parse_upsert_results_response_success(qbclient, mocked_qb_api_upsert):
     assert qbclient.parse_upsert_results(mocked_qb_api_upsert) == {
         "processed": 3,
-        "created": [11, 12],
-        "updated": [1],
-        "unchanged": [],
+        "created": 2,
+        "updated": 1,
+        "unchanged": 0,
+        "errors": None,
     }
 
 
