@@ -211,6 +211,26 @@ def test_qbclient_parse_upsert_results_response_success(qbclient, mocked_qb_api_
     }
 
 
+def test_qbclient_parse_upsert_results_response_captures_line_errors(qbclient):
+    mocked_qb_upsert_receipt = {
+        "data": [],
+        "metadata": {
+            "createdRecordIds": [11, 12],
+            "lineErrors": {"2": ['Incompatible value for field with ID "6".']},
+            "totalNumberOfRecordsProcessed": 3,
+            "unchangedRecordIds": [],
+            "updatedRecordIds": [],
+        },
+    }
+    assert qbclient.parse_upsert_results(mocked_qb_upsert_receipt) == {
+        "processed": 3,
+        "created": 2,
+        "errors": {'Incompatible value for field with ID "6".': 1},
+        "updated": 0,
+        "unchanged": 0,
+    }
+
+
 def test_qbclient_parse_upsert_results_response_error_return_none(qbclient):
     assert qbclient.parse_upsert_results({"msg": "bad API response"}) is None
 

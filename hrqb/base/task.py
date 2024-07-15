@@ -213,13 +213,6 @@ class QuickbaseUpsertTask(HRQBTask):
             table_name=self.table_name,
         )
 
-    @property
-    def parse_upsert_counts(self) -> dict | None:
-        """Parse results of upsert via QBClient method, if target data exists from run."""
-        if self.target.exists():
-            return QBClient.parse_upsert_results(self.target.read())
-        return None
-
     def get_records(self) -> list[dict]:
         """Get Records data that will be upserted to Quickbase.
 
