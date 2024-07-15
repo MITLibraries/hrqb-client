@@ -1,3 +1,5 @@
+# ruff: noqa: D202, D205, D209
+
 import pytest
 from _pytest.logging import LogCaptureFixture
 from click.testing import Result
@@ -5,6 +7,7 @@ from click.testing import Result
 from hrqb import cli
 
 OKAY_RESULT_CODE = 0
+ERROR_RESULT_CODE = 1
 MISSING_CLICK_ARG_RESULT_CODE = 2
 
 
@@ -96,12 +99,15 @@ def test_cli_pipeline_remove_data_task_not_found(
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=Animals",
-        "--task=BadTask",
+        "--include=BadTask",
         "remove-data",
     ]
     result = runner.invoke(cli.main, args)
-    assert result.exit_code == OKAY_RESULT_CODE
-    assert "Could not find target task: BadTask" in caplog.text
+    assert result.exit_code == ERROR_RESULT_CODE
+    assert (
+        "--include-tasks or --exclude-task are invalid: Task 'BadTask' not found in "
+        "pipeline" in result.output
+    )
 
 
 def test_cli_pipeline_run_success(caplog, runner):
@@ -157,14 +163,13 @@ def test_cli_pipeline_run_start_task_success(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "--task=ExtractAnimalNames",
+        "--include=ExtractAnimalNames",
         "run",
     ]
     result = runner.invoke(cli.main, args)
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Successfully loaded target task: ExtractAnimalNames",
         "Pipeline run result: SUCCESS",
     ]
     for line in lines:
@@ -178,7 +183,7 @@ def test_cli_pipeline_run_start_task_cleanup_success(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "--task=ExtractAnimalNames",
+        "--include=ExtractAnimalNames",
         "run",
         "--cleanup",
     ]
@@ -186,7 +191,6 @@ def test_cli_pipeline_run_start_task_cleanup_success(caplog, runner):
     assert result.exit_code == OKAY_RESULT_CODE
     lines = [
         "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Successfully loaded target task: ExtractAnimalNames",
         "ExtractAnimalNames.pickle successfully removed",
         "Pipeline run result: SUCCESS",
     ]
@@ -201,17 +205,15 @@ def test_cli_pipeline_run_start_task_not_found_error(caplog, runner):
         "pipeline",
         "--pipeline-module=tests.fixtures.tasks.pipelines",
         "--pipeline=AnimalsDebug",
-        "--task=BadTask",
+        "--include=BadTask",
         "run",
     ]
     result = runner.invoke(cli.main, args)
-    assert result.exit_code == OKAY_RESULT_CODE
-    lines = [
-        "Successfully loaded pipeline: 'tests.fixtures.tasks.pipelines.AnimalsDebug'",
-        "Could not find target task: BadTask",
-    ]
-    for line in lines:
-        assert text_in_logs_or_stdout(line, caplog, result)
+    assert result.exit_code == ERROR_RESULT_CODE
+    assert (
+        "--include-tasks or --exclude-task are invalid: Task 'BadTask' not found in "
+        "pipeline" in result.output
+    )
 
 
 @pytest.mark.usefixtures(
@@ -263,3 +265,39 @@ def test_cli_test_connections_quickbase_connection_error(caplog, runner):
     ]
     for line in lines:
         assert text_in_logs_or_stdout(line, caplog, result)
+
+
+def test_cli_pipeline_load_include_tasks_success(caplog, runner):
+    """This test sets a new root task for pipeline of PrepareAnimals, thereby removing
+    the task LoadAnimals entirely from the pipeline run scope."""
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=Animals",
+        "--include=PrepareAnimals",
+        "run",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE
+    assert not text_in_logs_or_stdout("LoadAnimals", caplog, result)
+    assert text_in_logs_or_stdout("PrepareAnimals", caplog, result)
+
+
+def test_cli_pipeline_load_exclude_tasks_success(
+    caplog, runner, task_extract_animal_names_target
+):
+    """This test uses a pre-existing data for task ExtractAnimalNames via a fixture,
+    then excludes it from the run.  Even though task is excluded, the run is successful
+    because pre-existing data exists."""
+    caplog.set_level("DEBUG")
+    args = [
+        "--verbose",
+        "pipeline",
+        "--pipeline-module=tests.fixtures.tasks.pipelines",
+        "--pipeline=Animals",
+        "--exclude=ExtractAnimalNames",
+        "run",
+    ]
+    result = runner.invoke(cli.main, args)
+    assert result.exit_code == OKAY_RESULT_CODE

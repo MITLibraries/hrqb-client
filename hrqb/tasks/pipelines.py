@@ -10,7 +10,7 @@ from hrqb.base.task import HRQBPipelineTask
 class FullUpdate(HRQBPipelineTask):
     """Pipeline to perform a full update of all Quickbase tables."""
 
-    def requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
+    def default_requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
         from hrqb.tasks.employee_appointments import LoadEmployeeAppointments
         from hrqb.tasks.employee_leave import LoadEmployeeLeave
         from hrqb.tasks.employee_salary_history import LoadEmployeeSalaryHistory
@@ -48,7 +48,7 @@ class UpdateLibHRData(HRQBPipelineTask):
 
     csv_filepath = luigi.Parameter()
 
-    def requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
+    def default_requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
         from hrqb.tasks.libhr_employee_appointments import LoadLibHREmployeeAppointments
 
         yield LoadLibHREmployeeAppointments(

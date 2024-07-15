@@ -1,7 +1,5 @@
 import luigi
-import pytest
 
-from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.full_annotated_pipeline import (
     AlphaNumeric,
     CombineLettersAndNumbers,
@@ -12,7 +10,9 @@ from tests.fixtures.tasks.pipelines import AnimalsDebug
 from tests.fixtures.tasks.transform import PrepareAnimals
 
 
-def test_pipeline_pipeline_tasks_iter_gives_all_parent_tasks(task_pipeline_animals_debug):
+def test_pipeline_pipeline_tasks_iter_gives_all_required_tasks(
+    task_pipeline_animals_debug,
+):
     pipeline_tasks = [
         task for _level, task in task_pipeline_animals_debug.pipeline_tasks_iter()
     ]
@@ -23,7 +23,7 @@ def test_pipeline_pipeline_tasks_iter_gives_all_parent_tasks(task_pipeline_anima
     assert pipeline_tasks[4].__class__ == ExtractAnimalNames  # Extract Task #2
 
 
-def test_pipeline_complete_when_all_parent_tasks_complete(
+def test_pipeline_complete_when_all_required_tasks_complete(
     task_extract_animal_names,
     task_extract_animal_colors,
     task_transform_animals,
@@ -51,7 +51,7 @@ def test_full_annotated_simple_pipeline():
     # we can run the pipeline directly using luigi to demonstrate the Task inputs/outputs
     # and dependencies are automatically handled.  run_pipeline(...) is a custom wrapper
     # function that runs luigi.build(...), and is what's called by CLI commands.
-    results = run_pipeline(AlphaNumeric())
+    results = AlphaNumeric().run_pipeline()
 
     # assert successful results
     assert results.status == luigi.LuigiStatusCode.SUCCESS
@@ -66,13 +66,3 @@ def test_full_annotated_simple_pipeline():
         "number": {0: 0, 1: 10, 2: 20, 3: 30, 4: 40},
         "letter": {0: "a", 1: "b", 2: "c", 3: "d", 4: "e"},
     }
-
-
-def test_run_pipeline_with_non_hrqbpipelinetask_type_raise_error(
-    task_extract_animal_names,
-):
-    with pytest.raises(
-        TypeError,
-        match="ExtractAnimalNames is not a HRQBPipelineTask type task",
-    ):
-        run_pipeline(task_extract_animal_names)

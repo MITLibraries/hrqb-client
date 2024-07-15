@@ -66,6 +66,8 @@ Options:
 ```text
 Usage: -c pipeline [OPTIONS] COMMAND [ARGS]...
 
+  Command group for pipeline actions (e.g. status, run, remove-data).
+
 Options:
   -p, --pipeline TEXT             Pipeline Task class name to be imported from
                                   configured pipeline module, e.g.
@@ -76,12 +78,14 @@ Options:
                                   Comma separated list of luigi Parameters to
                                   pass to HRQBPipelineTask, e.g.
                                   'Param1=foo,Param2=bar'.
-  -t, --task TEXT                 Select a target task for pipeline sub-
-                                  commands (e.g. remove-data, run, etc.)
+  -i, --include TEXT              Comma separated list of tasks to INCLUDE for
+                                  pipeline sub-commands
+  -e, --exclude TEXT              Comma separated list of tasks to EXCLUDE for
+                                  pipeline sub-commands
   -h, --help                      Show this message and exit.
 
 Commands:
-  remove-data  Remove target data from pipeline tasks.
+  remove-data  Remove target data from scoped pipeline tasks.
   run          Run a pipeline.
   status       Get status of a pipeline's tasks.
 ```
@@ -104,10 +108,7 @@ Options:
 ```text
 Usage: -c pipeline remove-data [OPTIONS]
 
-  Remove target data from pipeline tasks.
-
-  If argument --task is passed to parent 'pipeline' command, only this task
-  will have its target data removed.
+  Remove target data from scoped pipeline tasks.
 
 Options:
   -h, --help  Show this message and exit.
@@ -121,11 +122,8 @@ Usage: -c pipeline run [OPTIONS]
 
   Run a pipeline.
 
-  If argument --task is passed to parent 'pipeline' command, only this task,
-  and the tasks it requires, will run.
-
 Options:
-  --cleanup   Remove target data for all tasks in pipeline after run.
+  --cleanup   Remove target data for tasks run during pipeline.
   -h, --help  Show this message and exit.
 ```
 

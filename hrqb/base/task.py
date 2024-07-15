@@ -1,18 +1,22 @@
 """hrqb.base.task"""
 
+import json
 import logging
 import os
 from abc import abstractmethod
 from collections.abc import Iterator
-from typing import Literal
+from typing import Any, Literal
 
 import luigi  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd
+from luigi.execution_summary import LuigiRunResult  # type: ignore[import-untyped]
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.config import Config
+from hrqb.exceptions import ExcludedTaskRequiredError, TaskNotInPipelineScopeError
 from hrqb.utils.data_warehouse import DWClient
+from hrqb.utils.luigi import run_task
 from hrqb.utils.quickbase import QBClient
 
 logger = logging.getLogger(__name__)
@@ -283,6 +287,13 @@ class HRQBPipelineTask(luigi.WrapperTask):
     """
 
     parent_pipeline_name = luigi.OptionalStrParameter(default=None, significant=False)
+    include_tasks = luigi.OptionalListParameter(default=None, significant=False)
+    exclude_tasks = luigi.OptionalListParameter(default=None, significant=False)
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        """Check that attempted included or excluded tasks exist on init."""
+        super().__init__(*args, **kwargs)
+        self.verify_include_and_exclude_tasks_exist()
 
     @property
     def name(self) -> str:
@@ -294,6 +305,38 @@ class HRQBPipelineTask(luigi.WrapperTask):
         if self.parent_pipeline_name:
             output = f"{self.parent_pipeline_name}__{output}"
         return output
+
+    @abstractmethod
+    def default_requires(self) -> Iterator[luigi.Task]:
+        """Default root tasks for this pipeline.
+
+        Note: this is used in place of the more conventional requires() method, allowing
+        self.include_tasks, if set, to dynamically set root tasks.
+        """
+
+    def dynamic_requires(self) -> Iterator[luigi.Task]:
+        """Dynamic root tasks for pipeline from self.include_tasks if set."""
+        pipeline_tasks = {
+            task.name: task
+            for _, task in self.pipeline_tasks_iter(use_default_requires=True)
+        }
+        for task_name in self.include_tasks:
+            if task_name in pipeline_tasks:
+                yield pipeline_tasks[task_name]
+
+    def requires(self) -> Iterator[luigi.Task]:
+        """Required tasks for pipeline from defaults or dynamically from include_tasks."""
+        if self.include_tasks:
+            yield from self.dynamic_requires()
+        else:
+            yield from self.default_requires()
+
+    def verify_include_and_exclude_tasks_exist(self) -> None:
+        """Verify that included and excluded tasks exist in the pipeline."""
+        filter_tasks = (self.include_tasks or ()) + (self.exclude_tasks or ())
+        for task_name in filter_tasks:
+            if self.get_task(task_name) is None:
+                raise TaskNotInPipelineScopeError(task_name)
 
     @staticmethod
     def init_task_from_class_path(
@@ -310,28 +353,38 @@ class HRQBPipelineTask(luigi.WrapperTask):
         self,
         task: HRQBTask | None = None,
         level: int = 0,
+        use_default_requires: bool = False,  # noqa: FBT001, FBT002
     ) -> Iterator[tuple[int, luigi.Task]]:
-        """Yield all Tasks that are part of the dependency chain for this Task.
+        """Yield all Tasks that are part of the dependency chain for pipeline.
 
-        This method begins with the Pipeline Task itself, then recursively discovers and
-        yields parent Tasks as they are required.
+        This method begins with this pipeline task, recursively discovering and yielding
+        required Tasks.  If use_default_requires=True, this iterator will return all
+        default pipeline tasks, regardless of task includes or excludes.  This is helpful
+        for understanding if a Task is part a pipeline's dependency chain, even if not
+        scoped for run.
         """
         task = task or self
         yield level, task
-        for parent_task in task.requires():
+
+        if use_default_requires and isinstance(task, HRQBPipelineTask):
+            required_tasks = task.default_requires()
+        else:
+            required_tasks = task.requires()
+
+        for parent_task in required_tasks:
             yield from self.pipeline_tasks_iter(task=parent_task, level=level + 1)
 
-    def pipeline_targets_iter(self) -> Iterator[tuple[int, luigi.Target]]:
+    def pipeline_targets_iter(self) -> Iterator[tuple[int, luigi.Task, luigi.Target]]:
         """Yield all Targets that are part of the dependency chain for this Task.
 
         Using self.pipeline_Tasks_iter(), this yields the Task's Targets.
         """
         for level, task in self.pipeline_tasks_iter():
             if hasattr(task, "target"):
-                yield level, task.target
+                yield level, task, task.target
 
     def get_task(self, task_class_or_name: str | type) -> luigi.Task | None:
-        """Get an instantiated child Task, by name, from this parent Pipeline task."""
+        """Get an instantiated child Task, by name or class, from this Pipeline task."""
         task_class_name = (
             task_class_or_name.__name__
             if isinstance(task_class_or_name, type)
@@ -355,7 +408,11 @@ class HRQBPipelineTask(luigi.WrapperTask):
 
     def remove_pipeline_targets(self) -> None:
         """Remove Targets for all Tasks in this Pipeline Task."""
-        for _, target in self.pipeline_targets_iter():
+        for _, task, target in self.pipeline_targets_iter():
+            if self.exclude_tasks and task.name in self.exclude_tasks:
+                message = f"Skipping removal of excluded task: {task}"
+                logger.debug(message)
+                continue
             if target.exists() and hasattr(target, "remove"):
                 target.remove()
                 message = f"Target {target} successfully removed"
@@ -373,4 +430,27 @@ class HRQBPipelineTask(luigi.WrapperTask):
                 if result and result.get("errors") is not None:
                     results["qb_upsert_errors"] = True
             results["tasks"][task.name] = result  # type: ignore[index]
+        return results
+
+    def run_pipeline(self) -> LuigiRunResult:
+        """Function to run a HRQBPipelineTask by wrapping run_task with additional work.
+
+        This wrapper function does some preparation and cleanup:
+            1. clears global lists of successfully run tasks
+            2. checks that any excluded tasks are not required
+            3. aggregates and logs any Quickbase upsert results if performed
+        """
+        successful_tasks.clear()
+        successful_upsert_tasks.clear()
+
+        if self.exclude_tasks:
+            for _, task in self.pipeline_tasks_iter():
+                if task.name in self.exclude_tasks and not task.target.exists():
+                    raise ExcludedTaskRequiredError(task.name)
+
+        results = run_task(self)
+        if upsert_results := self.aggregate_upsert_results():
+            message = f"Upsert results: {json.dumps(upsert_results)}"
+            logger.info(message)
+
         return results

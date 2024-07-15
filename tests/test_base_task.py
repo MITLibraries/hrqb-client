@@ -15,8 +15,8 @@ from hrqb.base import (
     SQLQueryExtractTask,
 )
 from hrqb.config import Config
+from hrqb.exceptions import ExcludedTaskRequiredError
 from hrqb.utils.data_warehouse import DWClient
-from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.tasks.extract import ExtractAnimalNames
 from tests.fixtures.tasks.load import LoadTaskMultipleRequired
 
@@ -268,7 +268,7 @@ def test_quickbase_task_input_task_to_load_property_used(
 def test_base_pipeline_task_aggregate_upsert_results_one_success_returns_dict(
     task_pipeline_animals_debug,
 ):
-    run_pipeline(task_pipeline_animals_debug)
+    task_pipeline_animals_debug.run_pipeline()
 
     assert task_pipeline_animals_debug.aggregate_upsert_results() == {
         "tasks": {
@@ -292,15 +292,15 @@ def test_base_pipeline_task_aggregate_upsert_results_failed_load_returns_none_va
     load_task = task_pipeline_animals_debug.get_task("LoadAnimalsDebug")
     with mock.patch.object(load_task, "run") as mocked_run:
         mocked_run.side_effect = Exception("UPSERT FAILED!")
-        run_pipeline(task_pipeline_animals_debug)
+        task_pipeline_animals_debug.run_pipeline()
 
-    assert task_pipeline_animals_debug.aggregate_upsert_results() == None
+    assert task_pipeline_animals_debug.aggregate_upsert_results() is None
 
 
 def test_base_pipeline_task_aggregate_upsert_results_upsert_with_errors_noted(
     task_pipeline_animals_debug,
 ):
-    run_pipeline(task_pipeline_animals_debug)
+    task_pipeline_animals_debug.run_pipeline()
 
     # manually modify output of load task to simulate upsert errors
     load_task = task_pipeline_animals_debug.get_task("LoadAnimalsDebug")
@@ -328,3 +328,9 @@ def test_base_pipeline_task_aggregate_upsert_results_upsert_with_errors_noted(
         },
         "qb_upsert_errors": True,
     }
+
+
+def test_base_pipeline_task_required_excluded_task_error(task_pipeline_animals):
+    task_pipeline_animals.exclude_tasks = ["PrepareAnimals"]
+    with pytest.raises(ExcludedTaskRequiredError):
+        task_pipeline_animals.run_pipeline()

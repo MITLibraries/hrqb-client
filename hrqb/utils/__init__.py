@@ -69,6 +69,14 @@ def click_argument_to_dict(
     return dict(pair.split("=") for pair in value.split(","))
 
 
+def click_argument_to_list(
+    _ctx: click.Context, _parameter: click.Parameter, value: str
+) -> list:
+    if value is None:
+        return None
+    return value.split(",")
+
+
 def convert_oracle_bools_to_qb_bools(
     dataframe: pd.DataFrame,
     columns: list[str],

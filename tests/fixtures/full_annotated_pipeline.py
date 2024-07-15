@@ -84,5 +84,5 @@ class CombineLettersAndNumbers(PandasPickleTask):
 class AlphaNumeric(HRQBPipelineTask):
     """Pipeline Task that's only requirement is yielding required Tasks."""
 
-    def requires(self):
+    def default_requires(self):
         yield CombineLettersAndNumbers(pipeline=self.pipeline_name)
