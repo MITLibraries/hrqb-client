@@ -334,8 +334,12 @@ class HRQBPipelineTask(luigi.WrapperTask):
     def verify_include_and_exclude_tasks_exist(self) -> None:
         """Verify that included and excluded tasks exist in the pipeline."""
         filter_tasks = (self.include_tasks or ()) + (self.exclude_tasks or ())
+        all_pipeline_tasks = {
+            task.name: task
+            for _, task in self.pipeline_tasks_iter(use_default_requires=True)
+        }
         for task_name in filter_tasks:
-            if self.get_task(task_name) is None:
+            if task_name not in all_pipeline_tasks:
                 raise TaskNotInPipelineScopeError(task_name)
 
     @staticmethod

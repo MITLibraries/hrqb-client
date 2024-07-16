@@ -105,8 +105,8 @@ def test_cli_pipeline_remove_data_task_not_found(
     result = runner.invoke(cli.main, args)
     assert result.exit_code == ERROR_RESULT_CODE
     assert (
-        "--include-tasks or --exclude-task are invalid: Task 'BadTask' not found in "
-        "pipeline" in result.output
+        "CLI options --include or --exclude are invalid: Task 'BadTask' not found in "
+        "pipeline. Exiting." in result.output
     )
 
 
@@ -211,8 +211,8 @@ def test_cli_pipeline_run_start_task_not_found_error(caplog, runner):
     result = runner.invoke(cli.main, args)
     assert result.exit_code == ERROR_RESULT_CODE
     assert (
-        "--include-tasks or --exclude-task are invalid: Task 'BadTask' not found in "
-        "pipeline" in result.output
+        "CLI options --include or --exclude are invalid: Task 'BadTask' not found in "
+        "pipeline. Exiting." in result.output
     )
 
 

@@ -138,7 +138,7 @@ def pipeline(
             pipeline_parameters=pipeline_parameters,
         )
     except TaskNotInPipelineScopeError as exc:
-        message = f"--include-tasks or --exclude-task are invalid: {exc}, exiting"
+        message = f"CLI options --include or --exclude are invalid: {exc} Exiting."
         raise click.ClickException(message) from exc
 
     ctx.obj["PIPELINE_TASK"] = pipeline_task
@@ -161,6 +161,8 @@ def remove_data(ctx: click.Context) -> None:
     pipeline_task = ctx.obj["PIPELINE_TASK"]
     pipeline_task.remove_pipeline_targets()
     logger.info("Successfully removed target data(s).")
+    logger.info("Updated status after data cleanup:")
+    logger.info(pipeline_task.pipeline_as_ascii())
 
 
 @pipeline.command()
@@ -183,5 +185,3 @@ def run(
 
     if cleanup:
         ctx.invoke(remove_data)
-        logger.info("Updated status after data cleanup:")
-        logger.info(pipeline_task.pipeline_as_ascii())
