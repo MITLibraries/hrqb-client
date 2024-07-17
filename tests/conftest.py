@@ -919,3 +919,11 @@ def task_transform_years_complete(
     task = TransformYears(pipeline=all_tasks_pipeline_name)
     task.run()
     return task
+
+
+@pytest.fixture
+def sensitive_scope_variable():
+    return {
+        "note": "I am a dictionary with sensitive information",
+        "secret": "very-secret-abc123",
+    }

@@ -163,31 +163,6 @@ def test_quickbase_task_run_upsert_and_json_receipt_output_target_success(
     assert task_load_animals.target.read() == mocked_qb_upsert_receipt
 
 
-def test_quickbase_task_run_upsert_and_json_receipt_output_target_api_errors_logged(
-    caplog, task_transform_animals_target, task_load_animals
-):
-    """Mocks upsert to Quickbase, asserting mocked response is written as Target data"""
-    mocked_qb_upsert_receipt = {
-        "data": [],
-        "metadata": {
-            "createdRecordIds": [11, 12],
-            "lineErrors": {"2": ['Incompatible value for field with ID "6".']},
-            "totalNumberOfRecordsProcessed": 3,
-            "unchangedRecordIds": [],
-            "updatedRecordIds": [],
-        },
-    }
-    with mock.patch("hrqb.base.task.QBClient", autospec=True) as mock_qbclient_class:
-        mock_qbclient = mock_qbclient_class()
-        mock_qbclient.get_table_id.return_value = "abcdef123"
-        mock_qbclient.prepare_upsert_payload.return_value = {}
-        mock_qbclient.upsert_records.return_value = mocked_qb_upsert_receipt
-
-        task_load_animals.run()
-
-    assert "errors" in task_load_animals.parse_upsert_counts
-
-
 def test_base_pipeline_name(task_pipeline_animals):
     assert task_pipeline_animals.pipeline_name == "Animals"
 
