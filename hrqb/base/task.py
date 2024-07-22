@@ -223,6 +223,17 @@ class QuickbaseUpsertTask(HRQBTask):
             records_df = self.named_inputs[self.input_task_to_load].read()
         else:
             records_df = self.single_input_dataframe
+
+        if (
+            self.merge_field
+            and len(records_df[records_df.duplicated(self.merge_field)]) > 0
+        ):
+            message = (
+                f"Merge field '{self.merge_field}' found to have duplicate "
+                f"values for task '{self.name}'"
+            )
+            raise ValueError(message)
+
         records_df = self._normalize_records_for_upsert(records_df)
         return records_df.to_dict(orient="records")
 
