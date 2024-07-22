@@ -38,7 +38,7 @@ def test_task_transform_performance_reviews_get_three_month_review(
     task_transform_performance_reviews_complete,
 ):
     row = task_transform_performance_reviews_complete._get_employee_appointments().iloc[0]
-    review_date = datetime.datetime(2010, 4, 1, tzinfo=datetime.UTC)
+    review_date = datetime.datetime(2019, 4, 1, tzinfo=datetime.UTC)
     assert task_transform_performance_reviews_complete._get_three_month_review(row) == {
         "mit_id": "123456789",
         "employee_appointment_id": 12000,
@@ -54,7 +54,7 @@ def test_task_transform_performance_reviews_get_six_month_review(
     task_transform_performance_reviews_complete,
 ):
     row = task_transform_performance_reviews_complete._get_employee_appointments().iloc[0]
-    review_date = datetime.datetime(2010, 7, 1, tzinfo=datetime.UTC)
+    review_date = datetime.datetime(2019, 7, 1, tzinfo=datetime.UTC)
     assert task_transform_performance_reviews_complete._get_six_month_review(row) == {
         "mit_id": "123456789",
         "employee_appointment_id": 12000,
@@ -73,33 +73,21 @@ def test_task_transform_performance_reviews_get_annual_reviews(
     ann_revs_df = pd.DataFrame(
         task_transform_performance_reviews_complete._get_annual_reviews(row)
     )
-    assert len(ann_revs_df) == 7
+    assert len(ann_revs_df) == 3
     assert list(ann_revs_df.review_year) == [
-        "2019",
         "2020",
         "2021",
         "2022",
-        "2023",
-        "2024",
-        "2025",
     ]
     assert list(ann_revs_df.period_start_date) == [
-        pd.Timestamp("2018-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2019-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2020-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2021-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2022-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2023-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2024-07-01 00:00:00+0000", tz="UTC"),
     ]
     assert list(ann_revs_df.period_end_date) == [
-        pd.Timestamp("2019-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2020-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2021-07-01 00:00:00+0000", tz="UTC"),
         pd.Timestamp("2022-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2023-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2024-07-01 00:00:00+0000", tz="UTC"),
-        pd.Timestamp("2025-07-01 00:00:00+0000", tz="UTC"),
     ]
 
 
@@ -107,9 +95,9 @@ def test_task_transform_performance_reviews_get_annual_reviews_skip_six_month_ov
     task_transform_performance_reviews_complete,
 ):
     """
-    Note in the test above that the number of annual reviews is 7, and that there is a
+    Note in the test above that the number of annual reviews is 3, and that there is a
     review from 2018-2019.  By setting this appointment begin date as 2019-03-01, this
-    means there should not be a 2018-2019 review, as the 6-month review will be after the
+    means there should not be a 2019-2020 review, as the 6-month review will be after the
     beginning of the 2019-2020 review cycle.
     """
     row = task_transform_performance_reviews_complete._get_employee_appointments().iloc[0]
@@ -118,9 +106,9 @@ def test_task_transform_performance_reviews_get_annual_reviews_skip_six_month_ov
         task_transform_performance_reviews_complete._get_annual_reviews(row)
     )
 
-    assert len(ann_revs_df) == 6
+    assert len(ann_revs_df) == 3
     assert (
-        pd.Timestamp("2018-07-01 00:00:00+0000", tz="UTC")
+        pd.Timestamp("2019-07-01 00:00:00+0000", tz="UTC")
         not in ann_revs_df.period_start_date
     )
 
@@ -132,6 +120,7 @@ def test_task_transform_performance_reviews_key_expected_from_input_data(
     assert row["Key"] == md5_hash_from_values(
         [
             row["MIT ID"],
+            str(row["Related Employee Appointment"]),
             row["Review Type"],
             row["Related Year"],
         ]
