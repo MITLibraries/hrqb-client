@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004, PD901
+# ruff: noqa: PLR2004, PD901, D205, D212, SLF001
 
 import os
 from unittest import mock
@@ -15,6 +15,7 @@ from hrqb.base import (
     SQLQueryExtractTask,
 )
 from hrqb.config import Config
+from hrqb.exceptions import IntegrityCheckError
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.tasks.extract import ExtractAnimalNames
@@ -331,3 +332,84 @@ def test_base_pipeline_task_aggregate_upsert_results_upsert_with_errors_noted(
         },
         "qb_upsert_errors": True,
     }
+
+
+def test_base_task_integrity_check_decorator_adds_check_names_to_registered_checks(
+    pandas_task_with_integrity_checks,
+):
+    assert pandas_task_with_integrity_checks._integrity_checks.issuperset(
+        {
+            "expecting_five_items",
+            "expecting_letter_column",
+        }
+    )
+
+
+def test_base_task_run_integrity_checks_invokes_present_and_skips_absent_checks(
+    pandas_task_with_integrity_checks,
+):
+    """
+    This test simulates another task registering an integrity check that this task does
+    not have.  The task's defined integrity checks are invoked, while this other one is
+    quietly skipped.
+    """
+    pandas_task_with_integrity_checks._integrity_checks.add("i_do_not_have")
+
+    check_one = mock.MagicMock()
+    check_two = mock.MagicMock()
+    pandas_task_with_integrity_checks.expecting_five_items = check_one
+    pandas_task_with_integrity_checks.expecting_letter_column = check_two
+
+    output_df = pandas_task_with_integrity_checks.get_dataframe()
+    pandas_task_with_integrity_checks.run_integrity_checks(output_df)
+
+    check_one.assert_called()
+    check_two.assert_called()
+
+
+def test_quickbase_upsert_task_integrity_checks_get_upsert_results(
+    upsert_task_with_integrity_checks, mocked_qb_api_upsert
+):
+    check_one = mock.MagicMock()
+    check_two = mock.MagicMock()
+    upsert_task_with_integrity_checks.expecting_three_processed_records = check_one
+    upsert_task_with_integrity_checks.expecting_zero_updated_records = check_two
+
+    upsert_task_with_integrity_checks.run()
+
+    check_arg = check_one.call_args[0][0]
+    assert isinstance(check_arg, dict)
+    assert check_arg == mocked_qb_api_upsert
+
+
+def test_failed_integrity_checks_raise_custom_exception(
+    pandas_task_with_integrity_checks, upsert_task_with_integrity_checks
+):
+    # pandas task
+    with pytest.raises(
+        IntegrityCheckError, match="Expecting a 'letter' column in dataframe"
+    ):
+        pandas_task_with_integrity_checks.run()
+
+    # upsert task
+    with pytest.raises(IntegrityCheckError, match="Expecting zero updated records"):
+        upsert_task_with_integrity_checks.run()
+
+
+def test_task_without_integrity_checks_run_without_error(
+    task_extract_animal_names, mocker
+):
+    spy_run_checks = mocker.spy(task_extract_animal_names, "run_integrity_checks")
+    task_extract_animal_names.run()
+    spy_run_checks.assert_called()
+
+
+def test_upsert_task_duplicate_merge_field_values_raises_error(
+    upsert_task_with_duplicate_merge_field_values,
+):
+    with pytest.raises(
+        ValueError,
+        match="Merge field 'Key' found to have duplicate values for task "
+        "'UpsertWithDuplicates'",
+    ):
+        upsert_task_with_duplicate_merge_field_values.get_records()

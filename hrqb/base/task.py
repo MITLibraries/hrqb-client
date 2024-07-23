@@ -305,7 +305,6 @@ class QuickbaseUpsertTask(HRQBTask):
         records = self.get_records()
         results = self.upsert_records(records)
         self.run_integrity_checks(results)
-
         self.target.write(results)
 
 
