@@ -1,4 +1,4 @@
-# ruff: noqa: N802, N803, DTZ001
+# ruff: noqa: N802, N803, DTZ001, PLR2004, TRY003, EM101, SLF001
 
 import datetime
 import json
@@ -14,7 +14,7 @@ from click.testing import CliRunner
 from pandas import Timestamp
 
 from hrqb.base import HRQBTask, QuickbaseTableTarget
-from hrqb.base.task import PandasPickleTarget, QuickbaseUpsertTask
+from hrqb.base.task import PandasPickleTarget, PandasPickleTask, QuickbaseUpsertTask
 from hrqb.tasks.pipelines import UpdateLibHRData
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
@@ -927,3 +927,70 @@ def sensitive_scope_variable():
         "note": "I am a dictionary with sensitive information",
         "secret": "very-secret-abc123",
     }
+
+
+@pytest.fixture
+def pandas_task_with_integrity_checks():
+    class PandasWithChecks(PandasPickleTask):
+        stage = luigi.Parameter("Transform")
+
+        def get_dataframe(self) -> pd.DataFrame:
+            return pd.DataFrame(
+                [0, 1, 2, 3, 4],
+                columns=["number"],
+            )
+
+        @HRQBTask.integrity_check
+        def expecting_five_items(self, output_df: pd.DataFrame):
+            if len(output_df) != 5:
+                raise ValueError("Expecting a dataframe with five rows")
+
+        @HRQBTask.integrity_check
+        def expecting_letter_column(self, output_df: pd.DataFrame):
+            if "letter" not in output_df.columns:
+                raise ValueError("Expecting a 'letter' column in dataframe")
+
+    return PandasWithChecks(pipeline="Checks")
+
+
+@pytest.fixture
+def upsert_task_with_integrity_checks(mocked_qb_api_upsert):
+    class UpsertWithChecks(QuickbaseUpsertTask):
+        stage = luigi.Parameter("Load")
+
+        def get_records(self) -> pd.DataFrame:
+            return None
+
+        def upsert_records(self, _records):
+            return mocked_qb_api_upsert
+
+        @HRQBTask.integrity_check
+        def expecting_three_processed_records(self, upsert_results: dict):
+            if upsert_results["metadata"]["totalNumberOfRecordsProcessed"] != 3:
+                raise ValueError("Expecting three processed records")
+
+        @HRQBTask.integrity_check
+        def expecting_zero_updated_records(self, upsert_results: dict):
+            if len(upsert_results["metadata"]["updatedRecordIds"]) != 0:
+                raise ValueError("Expecting zero updated records")
+
+    return UpsertWithChecks(pipeline="Checks")
+
+
+@pytest.fixture
+def upsert_task_with_duplicate_merge_field_values(mocked_qb_api_upsert):
+    class UpsertWithDuplicates(QuickbaseUpsertTask):
+        stage = luigi.Parameter("Load")
+
+        @property
+        def merge_field(self) -> str | None:
+            return "Key"
+
+        @property
+        def single_input_dataframe(self) -> pd.DataFrame:
+            return pd.DataFrame(
+                ["abc123", "def456", "abc123"],
+                columns=["Key"],
+            )
+
+    return UpsertWithDuplicates(pipeline="Checks")

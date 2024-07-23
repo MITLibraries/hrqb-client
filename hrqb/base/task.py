@@ -3,15 +3,17 @@
 import logging
 import os
 from abc import abstractmethod
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Literal
 
 import luigi  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd
+import sentry_sdk
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.config import Config
+from hrqb.exceptions import IntegrityCheckError
 from hrqb.utils.data_warehouse import DWClient
 from hrqb.utils.quickbase import QBClient
 
@@ -105,6 +107,32 @@ class HRQBTask(luigi.Task):
             for task, target in list(zip(self.deps(), self.input(), strict=True))
         }
 
+    @classmethod
+    def integrity_check(cls, func: Callable) -> Callable:
+        """Decorator used to register integrity check methods from task classes."""
+        if not hasattr(cls, "_integrity_checks"):
+            cls._integrity_checks = set()
+        cls._integrity_checks.add(func.__name__)
+        return func
+
+    def run_integrity_checks(  # type: ignore[no-untyped-def]
+        self,
+        *args,  # noqa: ANN002
+        **kwargs,  # noqa: ANN003
+    ) -> None:
+        """Run all registered integrity check methods."""
+        for check_name in getattr(self, "_integrity_checks", []):
+            if check_func := getattr(self, check_name, None):
+                try:
+                    message = f"Running integrity check: {self.name}.{check_name}"
+                    logger.info(message)
+                    check_func(*args, **kwargs)
+                except Exception as exc:
+                    message = f"Task '{self.name}' failed integrity check: '{exc}'"
+                    integrity_exception = IntegrityCheckError(message)
+                    sentry_sdk.capture_exception(integrity_exception)
+                    raise integrity_exception from exc
+
 
 @HRQBTask.event_handler(luigi.Event.SUCCESS)
 def task_success_handler(task: HRQBTask) -> None:
@@ -133,8 +161,13 @@ class PandasPickleTask(HRQBTask):
         """
 
     def run(self) -> None:
-        """Write dataframe prepared by self.get_dataframe as Task Target output."""
-        self.target.write(self.get_dataframe())
+        """Write dataframe prepared by self.get_dataframe as Task Target output.
+
+        PandasPickleTasks pass the target data that will be written to integrity checks.
+        """
+        output_df = self.get_dataframe()
+        self.run_integrity_checks(output_df)
+        self.target.write(output_df)
 
 
 class SQLQueryExtractTask(PandasPickleTask):
@@ -223,6 +256,17 @@ class QuickbaseUpsertTask(HRQBTask):
             records_df = self.named_inputs[self.input_task_to_load].read()
         else:
             records_df = self.single_input_dataframe
+
+        if (
+            self.merge_field
+            and len(records_df[records_df.duplicated(self.merge_field)]) > 0
+        ):
+            message = (
+                f"Merge field '{self.merge_field}' found to have duplicate "
+                f"values for task '{self.name}'"
+            )
+            raise ValueError(message)
+
         records_df = self._normalize_records_for_upsert(records_df)
         return records_df.to_dict(orient="records")
 
@@ -234,6 +278,17 @@ class QuickbaseUpsertTask(HRQBTask):
         """
         return records_df.replace({np.nan: None})
 
+    def upsert_records(self, records: list[dict]) -> dict:
+        """Perform Quickbase upsert given a list of record dictionaries."""
+        qbclient = QBClient()
+        table_id = qbclient.get_table_id(self.table_name)
+        upsert_payload = qbclient.prepare_upsert_payload(
+            table_id,
+            records,
+            merge_field=self.merge_field,
+        )
+        return qbclient.upsert_records(upsert_payload)
+
     def run(self) -> None:
         """Retrieve data from parent Task and upsert to Quickbase table.
 
@@ -244,18 +299,12 @@ class QuickbaseUpsertTask(HRQBTask):
         Partial successes are possible for Quickbase upserts.  This method will log
         warnings when detected in API response, but task will be considered complete and
         ultimately successful.
+
+        QuickbaseUpsertTasks pass upsert results to integrity checks.
         """
         records = self.get_records()
-
-        qbclient = QBClient()
-        table_id = qbclient.get_table_id(self.table_name)
-        upsert_payload = qbclient.prepare_upsert_payload(
-            table_id,
-            records,
-            merge_field=self.merge_field,
-        )
-        results = qbclient.upsert_records(upsert_payload)
-
+        results = self.upsert_records(records)
+        self.run_integrity_checks(results)
         self.target.write(results)
 
 

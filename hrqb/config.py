@@ -102,9 +102,9 @@ def _remove_sensitive_scope_variables(event: Event) -> Event:
     object separately.
     """
     new_event = copy.deepcopy(event)
-    if "exception" in new_event:
-        for exc_type in new_event["exception"]["values"]:
-            for stacktrace in exc_type.get("stacktrace", {}).get("frames", []):
-                for item in ["vars", "pre_context", "post_context"]:
-                    stacktrace.pop(item, None)
+    for captured_exception in new_event.get("exception", {}).get("values", []):
+        for frame in captured_exception.get("stacktrace", {}).get("frames", []):
+            for item in ["vars", "pre_context", "post_context"]:
+                if item in frame:
+                    frame.pop(item, None)
     return new_event
