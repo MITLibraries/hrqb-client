@@ -278,6 +278,17 @@ class QuickbaseUpsertTask(HRQBTask):
         """
         return records_df.replace({np.nan: None})
 
+    def upsert_records(self, records: list[dict]) -> dict:
+        """Perform Quickbase upsert given a list of record dictionaries."""
+        qbclient = QBClient()
+        table_id = qbclient.get_table_id(self.table_name)
+        upsert_payload = qbclient.prepare_upsert_payload(
+            table_id,
+            records,
+            merge_field=self.merge_field,
+        )
+        return qbclient.upsert_records(upsert_payload)
+
     def run(self) -> None:
         """Retrieve data from parent Task and upsert to Quickbase table.
 
@@ -292,16 +303,7 @@ class QuickbaseUpsertTask(HRQBTask):
         QuickbaseUpsertTasks pass upsert results to integrity checks.
         """
         records = self.get_records()
-
-        qbclient = QBClient()
-        table_id = qbclient.get_table_id(self.table_name)
-        upsert_payload = qbclient.prepare_upsert_payload(
-            table_id,
-            records,
-            merge_field=self.merge_field,
-        )
-        results = qbclient.upsert_records(upsert_payload)
-
+        results = self.upsert_records(records)
         self.run_integrity_checks(results)
 
         self.target.write(results)
