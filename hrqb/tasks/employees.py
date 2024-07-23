@@ -4,6 +4,7 @@ import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
 from hrqb.base.task import (
+    HRQBTask,
     PandasPickleTask,
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
@@ -78,6 +79,13 @@ class TransformEmployees(PandasPickleTask):
             "termination_reason": "Termination Type",
         }
         return employees_df[fields.keys()].rename(columns=fields)
+
+    @HRQBTask.integrity_check
+    def check_unique_mit_ids(self, output_df: pd.DataFrame) -> None:
+        duplicate_mit_ids = len(output_df[output_df.duplicated("MIT ID", keep=False)])
+        if duplicate_mit_ids > 0:
+            message = f"Found {duplicate_mit_ids} duplicate 'MIT ID' column values"
+            raise ValueError(message)
 
 
 class LoadEmployees(QuickbaseUpsertTask):
