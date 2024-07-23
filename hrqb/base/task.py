@@ -9,6 +9,7 @@ from typing import Literal
 import luigi  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd
+import sentry_sdk
 
 from hrqb.base import PandasPickleTarget, QuickbaseTableTarget
 from hrqb.config import Config
@@ -128,7 +129,9 @@ class HRQBTask(luigi.Task):
                     check_func(*args, **kwargs)
                 except Exception as exc:
                     message = f"Task '{self.name}' failed integrity check: '{exc}'"
-                    raise IntegrityCheckError(message) from exc
+                    integrity_exception = IntegrityCheckError(message)
+                    sentry_sdk.capture_exception(integrity_exception)
+                    raise integrity_exception from exc
 
 
 @HRQBTask.event_handler(luigi.Event.SUCCESS)
