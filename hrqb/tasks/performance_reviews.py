@@ -49,6 +49,7 @@ class TransformPerformanceReviews(PandasPickleTask):
             lambda row: md5_hash_from_values(
                 [
                     row.mit_id,
+                    str(row.employee_appointment_id),
                     row.review_type,
                     row.review_year,
                 ]
@@ -115,7 +116,7 @@ class TransformPerformanceReviews(PandasPickleTask):
         """Get annual performance reviews for an appointment.
 
         This method begins with the appointment start year, with a minimum of 2019, then
-        adds performance reviews through current year + 1.
+        adds performance reviews through the end of the appointment or current year + 1.
 
         If an annual performance review would fall inside of a 3 or 6 month review, it is
         not included.
@@ -124,8 +125,18 @@ class TransformPerformanceReviews(PandasPickleTask):
             timeframes.  The cadence and review dates set below are placeholders until
             that is finalized.
         """
-        start_year = max([emp_appt_row.appointment_begin_date.year, 2019])
-        end_year = today_date().year + 2
+        start_year = max(
+            [
+                emp_appt_row.appointment_begin_date.year,
+                2019,
+            ]
+        )
+        end_year = min(
+            [
+                (emp_appt_row.appointment_end_date.year + 1),
+                (today_date().year + 2),
+            ]
+        )
 
         review_month = 7 if emp_appt_row.exempt else 8
 

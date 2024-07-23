@@ -60,7 +60,6 @@ def test_task_transform_employee_appointments_returns_required_load_fields(
 ):
     df = task_transform_employee_appointments_complete.get_dataframe()
     assert {
-        "HR Appointment Key",
         "MIT ID",
         "HC ID",
         "Related Employee Type",

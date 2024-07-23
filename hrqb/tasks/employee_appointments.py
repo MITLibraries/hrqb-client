@@ -109,7 +109,6 @@ class TransformEmployeeAppointments(PandasPickleTask):
         )
 
         fields = {
-            "hr_appt_key": "HR Appointment Key",
             "mit_id": "MIT ID",
             "HC ID": "HC ID",
             "employee_type": "Related Employee Type",
