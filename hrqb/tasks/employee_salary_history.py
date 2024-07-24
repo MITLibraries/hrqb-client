@@ -3,7 +3,12 @@
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
-from hrqb.base.task import PandasPickleTask, QuickbaseUpsertTask, SQLQueryExtractTask
+from hrqb.base.task import (
+    HRQBTask,
+    PandasPickleTask,
+    QuickbaseUpsertTask,
+    SQLQueryExtractTask,
+)
 from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
 
@@ -145,6 +150,18 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             new_salary_df["previous_base_amount"].notna(), 0.0
         )
         return new_salary_df
+
+    @HRQBTask.integrity_check
+    def all_rows_have_employee_appointments(self, output_df: pd.DataFrame) -> None:
+        missing_appointment_count = len(
+            output_df[output_df["Related Employee Appointment"].isna()]
+        )
+        if missing_appointment_count > 0:
+            message = (
+                f"{missing_appointment_count} rows are missing an Employee "
+                f"Appointment for task '{self.name}'"
+            )
+            raise ValueError(message)
 
 
 class LoadEmployeeSalaryHistory(QuickbaseUpsertTask):

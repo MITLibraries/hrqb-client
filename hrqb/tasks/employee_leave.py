@@ -7,6 +7,7 @@ import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
 from hrqb.base.task import (
+    HRQBTask,
     PandasPickleTask,
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
@@ -103,6 +104,18 @@ class TransformEmployeeLeave(PandasPickleTask):
             "related_employee_appointment_id": "Related Employee Appointment",
         }
         return leaves_df[fields.keys()].rename(columns=fields)
+
+    @HRQBTask.integrity_check
+    def all_rows_have_employee_appointments(self, output_df: pd.DataFrame) -> None:
+        missing_appointment_count = len(
+            output_df[output_df["Related Employee Appointment"].isna()]
+        )
+        if missing_appointment_count > 0:
+            message = (
+                f"{missing_appointment_count} rows are missing an Employee "
+                f"Appointment for task '{self.name}'"
+            )
+            raise ValueError(message)
 
 
 class LoadEmployeeLeave(QuickbaseUpsertTask):
