@@ -749,8 +749,10 @@ def task_extract_dw_employee_salary_history_complete(all_tasks_pipeline_name):
                     "mit_id": "123456789",
                     "job_id": "123456789",
                     "position_id": "987654321",
-                    "start_date": Timestamp("2010-07-01 00:00:00"),
-                    "end_date": datetime.datetime(2011, 12, 1, 0, 0),
+                    "appt_begin_date": Timestamp("2019-01-01 00:00:00"),
+                    "appt_end_date": datetime.datetime(2022, 12, 1, 0, 0),
+                    "start_date": Timestamp("2019-07-01 00:00:00"),
+                    "end_date": datetime.datetime(2022, 12, 1, 0, 0),
                     "hr_personnel_action_type_key": "CS01",
                     "hr_personnel_action": "Annual Salary Review",
                     "hr_action_reason": "Review Increase",
@@ -779,7 +781,6 @@ def task_shared_extract_qb_employee_appointments_complete(all_tasks_pipeline_nam
             [
                 {
                     "Record ID#": 12000,
-                    "HR Appointment Key": 123.0,
                     "Position ID": "987654321",
                     "Begin Date": "2019-01-01",
                     "End Date": "2022-12-01",
@@ -787,6 +788,7 @@ def task_shared_extract_qb_employee_appointments_complete(all_tasks_pipeline_nam
                     "Related Employee Type": "Admin Staff",
                     "Union Name": "Le Union",
                     "Exempt / NE": "E",
+                    "Key": "868ce513323c5391ae8afaa0ceb70c69",
                 }
             ]
         )
@@ -837,10 +839,11 @@ def task_extract_dw_employee_leave_complete(all_tasks_pipeline_name):
             [
                 {
                     "mit_id": "123456789",
-                    "appt_begin_date": Timestamp("2010-01-01 00:00:00"),
-                    "appt_end_date": datetime.datetime(2011, 12, 1, 0, 0),
+                    "appt_begin_date": Timestamp("2019-01-01 00:00:00"),
+                    "appt_end_date": datetime.datetime(2022, 12, 1, 0, 0),
+                    "position_id": "987654321",
                     "hr_appt_key": 123,
-                    "absence_date": Timestamp("2010-07-01 00:00:00"),
+                    "absence_date": Timestamp("2019-07-01 00:00:00"),
                     "absence_type": "Vacation",
                     "absence_type_code": "VACA",
                     "actual_absence_hours": 8.0,

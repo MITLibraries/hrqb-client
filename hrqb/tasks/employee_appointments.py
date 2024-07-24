@@ -97,13 +97,11 @@ class TransformEmployeeAppointments(PandasPickleTask):
 
         # mint a unique, deterministic value for the merge "Key" field
         emp_appts_df["key"] = emp_appts_df.apply(
-            lambda row: md5_hash_from_values(
-                [
-                    row.mit_id,
-                    row.position_id,
-                    row.appt_begin_date,
-                    row.appt_end_date,
-                ]
+            lambda row: self.generate_merge_key(
+                row.mit_id,
+                row.position_id,
+                row.appt_begin_date,
+                row.appt_end_date,
             ),
             axis=1,
         )
@@ -132,6 +130,22 @@ class TransformEmployeeAppointments(PandasPickleTask):
         }
 
         return emp_appts_df[fields.keys()].rename(columns=fields)
+
+    @staticmethod
+    def generate_merge_key(
+        mit_id: str,
+        position_id: str,
+        appt_begin_date: str,
+        appt_end_date: str,
+    ) -> str:
+        return md5_hash_from_values(
+            [
+                mit_id,
+                position_id,
+                appt_begin_date,
+                appt_end_date,
+            ]
+        )
 
 
 class LoadEmployeeAppointments(QuickbaseUpsertTask):

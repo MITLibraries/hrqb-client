@@ -11,6 +11,7 @@ from hrqb.base.task import (
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
 )
+from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import (
     convert_oracle_bools_to_qb_bools,
     md5_hash_from_values,
@@ -44,17 +45,28 @@ class TransformEmployeeLeave(PandasPickleTask):
         dw_leaves_df = self.named_inputs["ExtractDWEmployeeLeave"].read()
         qb_emp_appts_df = self.named_inputs["ExtractQBEmployeeAppointments"].read()
 
-        qb_emp_appts_df = qb_emp_appts_df[["HR Appointment Key", "Record ID#"]].rename(
+        # join Employee Appointments from QB to get QB Record ID
+        dw_leaves_df = normalize_dataframe_dates(
+            dw_leaves_df,
+            ["appt_begin_date", "appt_end_date", "absence_date"],
+        )
+        dw_leaves_df["emp_appt_merge_key"] = dw_leaves_df.apply(
+            lambda row: TransformEmployeeAppointments.generate_merge_key(
+                row.mit_id,
+                row.position_id,
+                row.appt_begin_date,
+                row.appt_end_date,
+            ),
+            axis=1,
+        )
+        qb_emp_appts_df = qb_emp_appts_df[["Key", "Record ID#"]].rename(
             columns={
-                "HR Appointment Key": "hr_appt_key",
+                "Key": "emp_appt_merge_key",
                 "Record ID#": "related_employee_appointment_id",
             }
         )
-        leaves_df = dw_leaves_df.merge(qb_emp_appts_df, how="left", on="hr_appt_key")
-
-        leaves_df = normalize_dataframe_dates(
-            leaves_df,
-            ["appt_begin_date", "appt_end_date", "absence_date"],
+        leaves_df = dw_leaves_df.merge(
+            qb_emp_appts_df, how="left", on="emp_appt_merge_key"
         )
 
         # WIP TODO: determine what data points from combination employee leave and

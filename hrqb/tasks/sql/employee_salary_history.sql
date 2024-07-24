@@ -8,6 +8,7 @@ Notes:
 CHANGELOG
     - 2024-05-31 Query created and added
     - 2024-06-03 Date limit to appointments ending after 2019-01-01
+    - 2024-07-24 Added appointment begin/end date to help match appointments
 */
 
 select distinct
@@ -16,6 +17,8 @@ select distinct
     a.MIT_ID,
     j.JOB_ID,
     p.POSITION_ID,
+    appt.APPT_BEGIN_DATE,
+    appt.APPT_END_DATE,
     a.APPT_TX_BEGIN_DATE as START_DATE,
     a.APPT_TX_END_DATE as END_DATE,
     at.HR_PERSONNEL_ACTION_TYPE_KEY,
@@ -37,6 +40,7 @@ select distinct
         else 'N'
     end as SPECIAL_ONETIME_PAY
 from HR_APPT_TX_DETAIL a
+inner join HR_APPOINTMENT_DETAIL appt on appt.HR_APPT_KEY = a.HR_APPT_KEY
 left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
 left join HR_JOB j on j.HR_JOB_KEY = a.HR_JOB_KEY
 left join HR_POSITION p on p.HR_POSITION_KEY = a.HR_POSITION_KEY
