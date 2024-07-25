@@ -6,7 +6,7 @@ def test_task_extract_qb_employee_appointments_complete_has_required_fields(
 ):
     required_columns = [
         "Record ID#",
-        "HR Appointment Key",
+        "Key",
     ]
     assert set(required_columns).issubset(
         set(task_shared_extract_qb_employee_appointments_complete.target.read().columns)

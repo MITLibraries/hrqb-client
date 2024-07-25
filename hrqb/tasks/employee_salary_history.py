@@ -3,7 +3,13 @@
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
-from hrqb.base.task import PandasPickleTask, QuickbaseUpsertTask, SQLQueryExtractTask
+from hrqb.base.task import (
+    HRQBTask,
+    PandasPickleTask,
+    QuickbaseUpsertTask,
+    SQLQueryExtractTask,
+)
+from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
 
 
@@ -32,17 +38,22 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         dw_salary_df = self.named_inputs["ExtractDWEmployeeSalaryHistory"].read()
 
         # merge with employee appointment data for QB appointment record identifier
+        dw_salary_df = normalize_dataframe_dates(
+            dw_salary_df,
+            ["appt_begin_date", "appt_end_date", "start_date", "end_date"],
+        )
+        dw_salary_df["emp_appt_merge_key"] = dw_salary_df.apply(
+            lambda row: TransformEmployeeAppointments.generate_merge_key(
+                row.mit_id,
+                row.position_id,
+                row.appt_begin_date,
+                row.appt_end_date,
+            ),
+            axis=1,
+        )
         qb_emp_appts_df = self._get_employee_appointments()
         salary_df = dw_salary_df.merge(
-            qb_emp_appts_df,
-            how="left",
-            left_on="hr_appt_key",
-            right_on="HR Appointment Key",
-        )
-
-        salary_df = normalize_dataframe_dates(
-            salary_df,
-            ["start_date", "end_date"],
+            qb_emp_appts_df, how="left", on="emp_appt_merge_key"
         )
 
         # convert efforts to percentages
@@ -70,7 +81,6 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         )
 
         fields = {
-            "hr_appt_tx_key": "HR Appointment Transaction Key",
             "mit_id": "MIT ID",
             "related_employee_appointment_id": "Related Employee Appointment",
             "hr_personnel_action": "Related Salary Change Type",
@@ -94,13 +104,14 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         return qb_emp_appts_df[
             [
                 "Record ID#",
-                "HR Appointment Key",
+                "Key",
                 "Begin Date",
                 "End Date",
             ]
         ].rename(
             columns={
                 "Record ID#": "related_employee_appointment_id",
+                "Key": "emp_appt_merge_key",
                 "Begin Date": "appointment_begin_date",
                 "End Date": "appointment_end_date",
             }
@@ -139,6 +150,18 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             new_salary_df["previous_base_amount"].notna(), 0.0
         )
         return new_salary_df
+
+    @HRQBTask.integrity_check
+    def all_rows_have_employee_appointments(self, output_df: pd.DataFrame) -> None:
+        missing_appointment_count = len(
+            output_df[output_df["Related Employee Appointment"].isna()]
+        )
+        if missing_appointment_count > 0:
+            message = (
+                f"{missing_appointment_count} rows are missing an Employee "
+                f"Appointment for task '{self.name}'"
+            )
+            raise ValueError(message)
 
 
 class LoadEmployeeSalaryHistory(QuickbaseUpsertTask):
