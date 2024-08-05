@@ -17,11 +17,12 @@ class TransformSalaryChangeTypes(PandasPickleTask):
 
     def get_dataframe(self) -> pd.DataFrame:
         fields = {"hr_personnel_action": "Salary Change Type"}
-        return (
+        salary_types_df = (
             self.single_input_dataframe[fields.keys()]
             .drop_duplicates()
             .rename(columns=fields)
         )
+        return salary_types_df[~salary_types_df["Salary Change Type"].isna()]
 
 
 class LoadSalaryChangeTypes(QuickbaseUpsertTask):
