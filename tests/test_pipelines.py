@@ -93,7 +93,10 @@ def test_run_pipeline_send_sentry_message_on_upsert_error(mocker):
         AlphaNumeric, "aggregate_upsert_results"
     ) as mocked_agg_results:
         mocked_agg_results.return_value = {
-            "tasks": {"FinickyTask": {"errors": ["Error1", "Error2"]}},
+            "tasks": {
+                "FinickyTask": {"errors": ["Error1", "Error2"]},
+                "SolidTask": {"errors": None},
+            },
             "qb_upsert_errors": True,
         }
         run_pipeline(AlphaNumeric())
