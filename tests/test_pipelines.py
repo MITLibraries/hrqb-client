@@ -1,5 +1,8 @@
+from unittest import mock
+
 import luigi
 import pytest
+import sentry_sdk
 
 from hrqb.utils.luigi import run_pipeline
 from tests.fixtures.full_annotated_pipeline import (
@@ -76,3 +79,28 @@ def test_run_pipeline_with_non_hrqbpipelinetask_type_raise_error(
         match="ExtractAnimalNames is not a HRQBPipelineTask type task",
     ):
         run_pipeline(task_extract_animal_names)
+
+
+def test_run_pipeline_no_sentry_message_with_no_upsert_errors(mocker):
+    spy_capture_message = mocker.spy(sentry_sdk, "capture_message")
+    run_pipeline(AlphaNumeric())
+    spy_capture_message.assert_not_called()
+
+
+def test_run_pipeline_send_sentry_message_on_upsert_error(mocker):
+    spy_capture_message = mocker.spy(sentry_sdk, "capture_message")
+    with mock.patch.object(
+        AlphaNumeric, "aggregate_upsert_results"
+    ) as mocked_agg_results:
+        mocked_agg_results.return_value = {
+            "tasks": {"FinickyTask": {"errors": ["Error1", "Error2"]}},
+            "qb_upsert_errors": True,
+        }
+        run_pipeline(AlphaNumeric())
+
+    spy_capture_message.assert_called()
+    assert (
+        spy_capture_message.call_args[0][0]
+        == "Quickbase upsert error(s) detected for tasks: ['FinickyTask']. Please see "
+        "logs for information on specific errors encountered."
+    )
