@@ -57,6 +57,9 @@ class TransformEmployeeAppointments(PandasPickleTask):
         libhr_df = self.named_inputs["ExtractQBLibHREmployeeAppointments"].read()
         depts_df = self.named_inputs["ExtractQBDepartments"].read()
 
+        # filter libhr data to active appointments, with position IDs
+        libhr_df = libhr_df[(libhr_df["Active"]) & ~(libhr_df["Position ID"].isna())]
+
         # normalize position id to string and pad zeros
         libhr_df["Position ID"] = libhr_df["Position ID"].apply(
             lambda x: str(int(x)).zfill(8)

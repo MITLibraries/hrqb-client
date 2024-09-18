@@ -35,5 +35,5 @@ def test_transform_libhr_employee_appointments_merge_field_key_values(
     assert list(new_df["Key"]) == [
         "81cf06bfd65aa1f7019750c57a79be99",
         "6e07102ee39ec1f22c63231d090bd4dd",
-        "744aefdd46c40523d60cf69490d81655",
+        "af08a24eeb35fae63fa76e755537b949",
     ]
