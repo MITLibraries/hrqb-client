@@ -1,12 +1,14 @@
 """hrqb.tasks.libhr_employee_appointments"""
 
 import luigi  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd
 
 from hrqb.base.task import (
     PandasPickleTask,
     QuickbaseUpsertTask,
 )
+from hrqb.utils import md5_hash_from_values
 from hrqb.utils.quickbase import QBClient
 
 
@@ -23,7 +25,16 @@ class ExtractLibHREmployeeAppointments(PandasPickleTask):
     csv_filepath = luigi.Parameter()
 
     def get_dataframe(self) -> pd.DataFrame:
-        return pd.read_csv(self.csv_filepath)
+        # read CSV file
+        libhr_df = pd.read_csv(self.csv_filepath)
+
+        # convert 'Active' column to Quickbase Yes/No checkbox value
+        # np.False_ and np.True_ values are the result of Excel --> CSV --> pandas
+        libhr_df["Active"] = libhr_df["Active"].replace(
+            {np.True_: "Yes", np.False_: "No"}
+        )
+
+        return libhr_df
 
 
 class ExtractQBDepartments(PandasPickleTask):
@@ -67,6 +78,17 @@ class TransformLibHREmployeeAppointments(PandasPickleTask):
             how="left",
         )
 
+        # mint a unique, deterministic value for the merge "Key" field
+        libhr_df["Key"] = libhr_df.apply(
+            lambda row: md5_hash_from_values(
+                [
+                    str(row["MIT ID"]),
+                    str(row["HC ID"]),
+                ]
+            ),
+            axis=1,
+        )
+
         fields = {
             "MIT ID": "Related Employee MIT ID",
             "Supervisor ID": "Related Supervisor MIT ID",
@@ -74,6 +96,8 @@ class TransformLibHREmployeeAppointments(PandasPickleTask):
             "HC ID": "HC ID",
             "Position ID": "Position ID",
             "Related Department ID": "Related Department ID",
+            "Active": "Active",
+            "Key": "Key",
         }
         return libhr_df[fields.keys()].rename(columns=fields)
 
@@ -86,7 +110,7 @@ class LoadLibHREmployeeAppointments(QuickbaseUpsertTask):
     @property
     def merge_field(self) -> str | None:
         """Explicitly merge on unique Position ID field."""
-        return "Position ID"
+        return "Key"
 
     def requires(self) -> list[luigi.Task]:  # pragma: nocover
         return [

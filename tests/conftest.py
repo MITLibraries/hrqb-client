@@ -653,6 +653,7 @@ def task_extract_qb_libhr_complete(all_tasks_pipeline_name):
                     "Position ID": 987654321,
                     "Cost Object": 7777777,
                     "Related Department ID": 42.0,
+                    "Active": True,
                 }
             ]
         )
