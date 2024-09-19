@@ -87,7 +87,7 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             "hr_action_reason": "Salary Change Reason",
             "start_date": "Start Date",
             "end_date": "End Date",
-            "temp_base_change_percent": "Temp Salary Change %",
+            "temp_base_change_percent": "Temp Change to Base %",
             "original_base_amount": "Base Salary",
             "original_hourly_rate": "Hourly",
             "original_effort": "Effort %",
