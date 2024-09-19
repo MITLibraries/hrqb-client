@@ -1,6 +1,7 @@
 """hrqb.tasks.employee_salary_history"""
 
 import luigi  # type: ignore[import-untyped]
+import numpy as np
 import pandas as pd
 
 from hrqb.base.task import (
@@ -11,6 +12,8 @@ from hrqb.base.task import (
 )
 from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
+
+PERCENT_DECIMAL_ACCURACY = 5
 
 
 class ExtractDWEmployeeSalaryHistory(SQLQueryExtractTask):
@@ -63,6 +66,9 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
         # set base salary change percentage from previous record, for same position
         salary_df = self._set_base_salary_change_percent(salary_df)
 
+        # calculate effective salary and determine effective change percent since previous
+        salary_df = self._set_effective_salary_and_change_percent(salary_df)
+
         # mint a unique, deterministic value for the merge "Key" field
         salary_df["key"] = salary_df.apply(
             lambda row: md5_hash_from_values(
@@ -96,6 +102,7 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             "temp_change_hourly_rate": "Temp Hourly",
             "temp_effort": "Temp Effort %",
             "key": "Key",
+            "effective_change_percent": "Effective Salary Change %",
         }
         return salary_df[fields.keys()].rename(columns=fields)
 
@@ -144,11 +151,49 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
                 / new_salary_df["previous_base_amount"]
                 - 1.0
             ),
-            3,
+            PERCENT_DECIMAL_ACCURACY,
         )
         new_salary_df["base_change_percent"] = new_salary_df["base_change_percent"].where(
             new_salary_df["previous_base_amount"].notna(), 0.0
         )
+        return new_salary_df
+
+    def _set_effective_salary_and_change_percent(
+        self, salary_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        new_salary_df = salary_df.copy()
+
+        # set effective salary to a temp base, or use the original base amount
+        new_salary_df["effective_salary"] = (
+            new_salary_df["temp_change_base_amount"]
+            .replace(0, np.nan)
+            .fillna(new_salary_df["original_base_amount"])
+        )
+
+        # calculate effective change percent since last row
+        new_salary_df["previous_effective_salary"] = (
+            new_salary_df.sort_values(
+                [
+                    "mit_id",
+                    "appointment_begin_date",
+                    "appointment_end_date",
+                ]
+            )
+            .groupby(["mit_id", "hr_appt_key"])["effective_salary"]
+            .shift(1)
+        )
+        new_salary_df["effective_change_percent"] = round(
+            (
+                new_salary_df["effective_salary"]
+                / new_salary_df["previous_effective_salary"]
+                - 1.0
+            ),
+            PERCENT_DECIMAL_ACCURACY,
+        )
+        new_salary_df["effective_change_percent"] = new_salary_df[
+            "effective_change_percent"
+        ].where(new_salary_df["previous_effective_salary"].notna(), 0.0)
+
         return new_salary_df
 
     @HRQBTask.integrity_check

@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004, PD901, SLF001
+# ruff: noqa: PLR2004, PD901, SLF001, E501
 
 import numpy as np
 import pandas as pd
@@ -108,9 +108,105 @@ def test_task_transform_employee_salary_history_set_base_change_percent(
         [
             0.0,  # first position, so no change
             0.03,
-            0.456,
+            0.45631,  # 5 digits of accuracy, but rounded to 2 digits in Quickbase
             0.0,  # new position, so no change
             0.125,
             0.1,
+        ],
+    )
+
+
+def test_task_transform_employee_salary_history_set_effective_change_percent_no_temps(
+    task_transform_employee_salary_history_complete,
+):
+    df = pd.DataFrame(
+        [
+            ("123456789", "123", "2020-01-01", "2021-06-30", 10_000, 0),
+            ("123456789", "123", "2020-07-01", "2021-12-31", 10_300, 0),
+            ("123456789", "123", "2021-01-01", "2021-06-30", 15_000, 0),
+            ("123456789", "456", "2021-07-01", "2022-06-30", 20_000, 0),
+            ("123456789", "456", "2022-07-01", "2022-12-31", 22_500, 0),
+            ("123456789", "456", "2023-01-01", "2999-12-31", 24_750, 0),
+        ],
+        columns=[
+            "mit_id",
+            "hr_appt_key",
+            "appointment_begin_date",
+            "appointment_end_date",
+            "original_base_amount",
+            "temp_change_base_amount",
+        ],
+    )
+    new_df = task_transform_employee_salary_history_complete._set_effective_salary_and_change_percent(
+        df
+    )
+    np.testing.assert_array_equal(
+        new_df.previous_effective_salary.values,
+        [
+            np.nan,  # first position, so no previous
+            10_000.0,
+            10_300.0,
+            np.nan,  # new position, so reset
+            20_000.0,
+            22_500.0,
+        ],
+    )
+    np.testing.assert_array_equal(
+        new_df.effective_change_percent.values,
+        [
+            0.0,  # first position, so no change
+            0.03,
+            0.45631,
+            0.0,
+            0.125,
+            0.1,
+        ],
+    )
+
+
+def test_task_transform_employee_salary_history_set_effective_change_percent_with_temps(
+    task_transform_employee_salary_history_complete,
+):
+    df = pd.DataFrame(
+        [
+            ("123456789", "123", "2020-01-01", "2021-06-30", 10_000, 0),
+            ("123456789", "123", "2020-07-01", "2021-12-31", 10_300, 11_300),
+            ("123456789", "123", "2021-01-01", "2021-06-30", 15_000, 0),
+            ("123456789", "456", "2021-07-01", "2022-06-30", 20_000, 21_000),
+            ("123456789", "456", "2022-07-01", "2022-12-31", 22_500, 23_500),
+            ("123456789", "456", "2023-01-01", "2999-12-31", 24_750, 0),
+        ],
+        columns=[
+            "mit_id",
+            "hr_appt_key",
+            "appointment_begin_date",
+            "appointment_end_date",
+            "original_base_amount",
+            "temp_change_base_amount",
+        ],
+    )
+    new_df = task_transform_employee_salary_history_complete._set_effective_salary_and_change_percent(
+        df
+    )
+    np.testing.assert_array_equal(
+        new_df.previous_effective_salary.values,
+        [
+            np.nan,  # first position, so no previous
+            10_000.0,
+            11_300.0,
+            np.nan,  # new position, so reset
+            21_000.0,
+            23_500.0,
+        ],
+    )
+    np.testing.assert_array_equal(
+        new_df.effective_change_percent.values,
+        [
+            0.0,  # first position, so no change
+            0.13,  # 13% increase for CURRENT temp $11.3k over PREVIOUS $10k
+            0.32743,  # 32% increase for CURRENT base $15k over PREVIOUS temp $11.3k
+            0.0,  # new position, no change
+            0.11905,  # 11% increase from CURRENT temp $23.5 over PREVIOUS temp $21k
+            0.05319,  # 5% increase of CURRENT base $24.7k over PREVIOUS temp $23.5
         ],
     )
