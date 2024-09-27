@@ -998,3 +998,50 @@ def upsert_task_with_duplicate_merge_field_values(mocked_qb_api_upsert):
             )
 
     return UpsertWithDuplicates(pipeline="Checks")
+
+
+@pytest.fixture
+def task_extract_dw_employee_leave_balances_complete(all_tasks_pipeline_name):
+    from hrqb.tasks.employee_leave_balances import ExtractDWEmployeeLeaveBalances
+
+    task = ExtractDWEmployeeLeaveBalances(pipeline=all_tasks_pipeline_name)
+    task.target.write(
+        pd.DataFrame(
+            [
+                {
+                    "mit_id": "123456789",
+                    "balance_type": "MIT Non-Ex Vacation Quota",
+                    "beginning_balance_hours": 80.0,
+                    "deducted_hours": 8.0,
+                    "ending_balance_hours": 72.0,
+                    "beginning_balance_days": 10.0,
+                    "deducted_days": 1.0,
+                    "ending_balance_days": 9.0,
+                    "absence_balance_begin_date": "2006-06-26",
+                    "absence_balance_end_date": "2999-12-31",
+                }
+            ]
+        )
+    )
+    return task
+
+
+@pytest.fixture
+def task_transform_employee_leave_balance_complete(
+    all_tasks_pipeline_name,
+    task_extract_dw_employee_leave_balances_complete,
+):
+    from hrqb.tasks.employee_leave_balances import TransformEmployeeLeaveBalances
+
+    task = TransformEmployeeLeaveBalances(pipeline=all_tasks_pipeline_name)
+    task.run()
+    return task
+
+
+@pytest.fixture
+def task_load_employee_leave_balances(
+    all_tasks_pipeline_name, task_transform_employee_leave_balance_complete
+):
+    from hrqb.tasks.employee_leave_balances import LoadEmployeeLeaveBalances
+
+    return LoadEmployeeLeaveBalances(pipeline=all_tasks_pipeline_name)

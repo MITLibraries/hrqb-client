@@ -42,7 +42,7 @@ def test_task_transform_employee_leave_key_expected_from_row_data(
     )
 
 
-def test_task_load_employee_salary_history_explicit_properties(
+def test_task_load_employee_leave_explicit_properties(
     task_load_employee_leave,
 ):
     assert task_load_employee_leave.merge_field == "Key"
