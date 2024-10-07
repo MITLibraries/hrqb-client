@@ -7,10 +7,11 @@ CHANGELOG
         or retirement reason
     - 2024-10-07 Use table HR_APPT_ACTION_DETAIL vs HR_APPT_TX_DETAIL for termination
         details
-    - 2024-10-07 Add employee ethnicity to query
+    - 2024-10-07 Add employee ethnicity to query, ensuring it is only present for the last
+        appointment for an employee
 */
 
-with ordered_appt_txn as (
+with ordered_appointments as (
     select
         a.MIT_ID,
         at.HR_PERSONNEL_ACTION,
@@ -21,14 +22,16 @@ with ordered_appt_txn as (
         ) as txn_row_num
     from HR_APPT_ACTION_DETAIL a
     left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
-    where at.HR_PERSONNEL_ACTION in ('Termination','Retirement')
 ),
-last_appt_txn as (
+last_appointment as (
     select
         MIT_ID,
-        HR_PERSONNEL_ACTION,
-        HR_ACTION_REASON
-    from ordered_appt_txn
+        HR_PERSONNEL_ACTION as TERMINATION_ACTION,
+        case
+            when HR_PERSONNEL_ACTION in ('Termination','Retirement') then HR_ACTION_REASON
+            else null
+        end as TERMINATION_REASON
+    from ordered_appointments
     where txn_row_num = 1
 )
 select
@@ -64,10 +67,9 @@ select
     e.YRS_OF_SERVICE as YRS_OF_PROF_EXPR,
     e.I9_FORM_EXPIRATION_DATE,
     e.RESIDENCY_STATUS,
-    lat.HR_PERSONNEL_ACTION as TERMINATION_ACTION,
-    lat.HR_ACTION_REASON as TERMINATION_REASON
+    la.TERMINATION_REASON
 from HR_PERSON_EMPLOYEE e
-left join last_appt_txn lat on lat.MIT_ID = e.MIT_ID
+left join last_appointment la on la.MIT_ID = e.MIT_ID
 where e.MIT_ID in (
     select
         a.MIT_ID
