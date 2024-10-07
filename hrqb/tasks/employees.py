@@ -64,6 +64,7 @@ class TransformEmployees(PandasPickleTask):
             "office_address": "Work Address Office",
             "office_phone": "Work Phone",
             "home_phone": "Cell Phone Number",
+            "ethnic_origin": "Ethnicity",
             "emergency_contact_name": "Emergency Contact Name",
             "emergency_contact_relation": "Emergency Contact Relationship",
             "emergency_contact_email": "Emergency Contact Email",

@@ -474,6 +474,7 @@ def task_extract_dw_employees_dw_dataframe():
                 "office_address": "77 Massachusetts Ave, Room 4-123",
                 "office_phone": "617-253-1234",
                 "home_phone": "617-555-6789",
+                "ethnic_origin": "Two or more races, not Hispanic/Latino",
                 "emergency_contact_name": "Jane Doe",
                 "emergency_contact_relation": "Spouse",
                 "emergency_contact_email": "jane.doe@example.com",
