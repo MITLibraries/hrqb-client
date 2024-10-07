@@ -7,6 +7,7 @@ CHANGELOG
         or retirement reason
     - 2024-10-07 Use table HR_APPT_ACTION_DETAIL vs HR_APPT_TX_DETAIL for termination
         details
+    - 2024-10-07 Add employee ethnicity to query
 */
 
 with ordered_appt_txn as (
@@ -49,6 +50,7 @@ select
     e.OFFICE_ADDRESS,
     e.OFFICE_PHONE,
     e.HOME_PHONE,
+    e.ETHNIC_ORIGIN,
     e.EMERGENCY_CONTACT_NAME,
     e.EMERGENCY_CONTACT_RELATION,
     e.EMERGENCY_CONTACT_EMAIL,
