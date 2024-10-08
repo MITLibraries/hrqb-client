@@ -36,7 +36,7 @@ class TransformEmployees(PandasPickleTask):
                 "date_of_birth",
                 "mit_hire_date",
                 "mit_lib_hire_date",
-                "appointment_end_date",
+                "last_lib_appt_end_date",
                 "i9_form_expiration_date",
             ],
         )
@@ -53,7 +53,7 @@ class TransformEmployees(PandasPickleTask):
             "date_of_birth": "Date of Birth",
             "mit_hire_date": "Original Hire Date at MIT",
             "mit_lib_hire_date": "Original Hire Date at MIT Libraries",
-            "appointment_end_date": "End Date",
+            "last_lib_appt_end_date": "End Date",
             "home_addr_street1": "Street 1",
             "home_addr_street2": "Street 2",
             "home_addr_city": "City",
@@ -77,7 +77,7 @@ class TransformEmployees(PandasPickleTask):
             "yrs_of_mit_serv": "MIT Years of Service",
             "yrs_of_prof_expr": "Years of Professional Experience",
             "i9_form_expiration_date": "I9 Expiration Date",
-            "termination_reason": "Termination Type",
+            "termination_reason": "Termination Reason",
         }
         return employees_df[fields.keys()].rename(columns=fields)
 

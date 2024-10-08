@@ -7,32 +7,55 @@ CHANGELOG
         or retirement reason
     - 2024-10-07 Use table HR_APPT_ACTION_DETAIL vs HR_APPT_TX_DETAIL for termination
         details
-    - 2024-10-07 Add employee ethnicity to query, ensuring it is only present for the last
-        appointment for an employee
+    - 2024-10-07 Add employee ethnicity to query
+    - 2024-10-08
+        - reworked CTEs to provide details about last library appointment only
+        - move > 2019 filtering to HR_PERSON_EMPLOYEE in ordered_lib_appt MIT_IDs
 */
 
-with ordered_appointments as (
+-- get all library appointments for employee, ordered
+with ordered_lib_appt as (
     select
-        a.MIT_ID,
-        at.HR_PERSONNEL_ACTION,
-        at.HR_ACTION_REASON,
-        row_number() over (
-            partition by a.MIT_ID
-            order by a.APPT_TX_BEGIN_DATE desc, a.APPT_TX_END_DATE desc
-        ) as txn_row_num
-    from HR_APPT_ACTION_DETAIL a
-    left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
-),
-last_appointment as (
-    select
+        HR_APPT_KEY,
+        HR_POSITION_KEY,
         MIT_ID,
-        HR_PERSONNEL_ACTION as TERMINATION_ACTION,
-        case
-            when HR_PERSONNEL_ACTION in ('Termination','Retirement') then HR_ACTION_REASON
-            else null
-        end as TERMINATION_REASON
-    from ordered_appointments
-    where txn_row_num = 1
+        APPT_BEGIN_DATE,
+        APPT_END_DATE,
+        row_number() over (
+            partition by MIT_ID
+            order by APPT_BEGIN_DATE desc, APPT_END_DATE desc
+        ) as appt_row_num
+    from HR_APPOINTMENT_DETAIL
+    where APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
+),
+-- select only the last / current appointment for employee
+last_lib_appt as (
+    select *
+    from ordered_lib_appt
+    where appt_row_num = 1
+),
+-- get all appointment actions that are related to retirement or termination
+appt_termination_txns as (
+    select
+        ad.MIT_ID,
+        ad.HR_POSITION_KEY,
+        at.HR_PERSONNEL_ACTION,
+        at.HR_ACTION_REASON as TERMINATION_REASON
+    from HR_APPT_ACTION_DETAIL ad
+    left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = ad.HR_PERSONNEL_ACTION_TYPE_KEY
+    where at.HR_PERSONNEL_ACTION in ('Retirement','Termination')
+),
+-- combine CTEs above to get last / current appointment end date and termination reason
+last_lib_appt_details as (
+    select
+    lla.MIT_ID,
+    lla.APPT_END_DATE as LAST_LIB_APPT_END_DATE,
+    att.TERMINATION_REASON
+    from last_lib_appt lla
+    left join appt_termination_txns att on (
+        att.MIT_ID = lla.MIT_ID
+        and att.HR_POSITION_KEY = lla.HR_POSITION_KEY
+    )
 )
 select
     e.MIT_ID,
@@ -42,7 +65,7 @@ select
     e.DATE_OF_BIRTH,
     e.ORIGINAL_HIRE_DATE AS MIT_HIRE_DATE,
     e.CURRENT_EMPLOYMENT_DATE as MIT_LIB_HIRE_DATE,
-    e.APPOINTMENT_END_DATE,
+    llad.LAST_LIB_APPT_END_DATE,
     e.HOME_ADDR_STREET1,
     e.HOME_ADDR_STREET2,
     e.HOME_ADDR_CITY,
@@ -67,13 +90,8 @@ select
     e.YRS_OF_SERVICE as YRS_OF_PROF_EXPR,
     e.I9_FORM_EXPIRATION_DATE,
     e.RESIDENCY_STATUS,
-    la.TERMINATION_REASON
+    llad.TERMINATION_REASON
 from HR_PERSON_EMPLOYEE e
-left join last_appointment la on la.MIT_ID = e.MIT_ID
-where e.MIT_ID in (
-    select
-        a.MIT_ID
-    from HR_APPOINTMENT_DETAIL a
-    where a.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
-)
+inner join last_lib_appt_details llad on llad.MIT_ID = e.MIT_ID
+where e.MIT_ID in (select MIT_ID from last_lib_appt)
 order by LAST_NAME
