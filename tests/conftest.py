@@ -463,7 +463,7 @@ def task_extract_dw_employees_dw_dataframe():
                 "date_of_birth": datetime.datetime(1985, 4, 12),
                 "mit_hire_date": datetime.datetime(2010, 8, 15),
                 "mit_lib_hire_date": datetime.datetime(2012, 6, 20),
-                "appointment_end_date": "2025-12-31",
+                "last_lib_appt_end_date": "2025-12-31",
                 "home_addr_street1": "123 Elm Street",
                 "home_addr_street2": "Apt 456",
                 "home_addr_city": "Cambridge",
