@@ -1,4 +1,6 @@
-MIT ID,HC ID,Full Name,Position,Position ID,Employee Type,Supervisor ID,Supervisor Name,Cost Object,Department,Active
-123456789,L-001,"Doe, John",Science Librarian,888888888,Admin Staff,444444444,"Smith, Fancy",555555555,DDC,True
-987654321,L-100,"Doe, Jane",Data Engineer,999999999,Admin Staff,444444444,"Smith, Fancy",555555555,ITS,True
-987654321,L-101x,"Doe, Jane",DevOps Engineer,999999991,Admin Staff,444444444,"Smith, Fancy",555555555,BAD_ACRO,False
+MIT ID,HC ID,Full Name,Internal Position Title,Position ID,Employee Type,Supervisor ID,Supervisor Name,Cost Object,Department,Begin Date,End Date,Notes
+123456789,L-001,"Doe, John",Science Librarian,888888888,Admin Staff,444444444,"Smith, Fancy",555555555,DDC,2022-02-02,2999-12-31,
+987654321,L-100,"Doe, Jane",Data Engineer,999999999,Admin Staff,444444444,"Smith, Fancy",555555555,ITS,2021-01-01,2999-12-31,Represents employee Jane Doe getting a new headcount id when changing positions
+987654321,L-101x,"Doe, Jane",DevOps Engineer,999999991,Admin Staff,444444444,"Smith, Fancy",555555555,BAD_ACRO,2020-01-01,2020-12-31,"Represents a headcount id that  ended, and was picked up by a new employee."
+987654320,L-101,"Doe, Alice",DevOps Engineer,999999991,Admin Staff,444444444,"Smith, Fancy",555555555,ITS,2021-06-01,2999-12-31,"Represents a headcount id that was picked up and is still active, but headcount id L-101 was vacant for six months."
+343434343,L-050x,"Doe, Stan",Music Librarian,777777777,,333333333,"Lee, Pauline",444444444,IDLA,2023-07-15,2024-02-01,Represents a still vacant headcount id.
