@@ -102,6 +102,5 @@ def test_task_transform_employee_appointments_key_expected_from_row_data(
             row["MIT ID"],
             row["Position ID"],
             row["Begin Date"],
-            row["End Date"],
         ]
     )

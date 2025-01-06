@@ -104,7 +104,6 @@ class TransformEmployeeAppointments(PandasPickleTask):
                 row.mit_id,
                 row.position_id,
                 row.appt_begin_date,
-                row.appt_end_date,
             ),
             axis=1,
         )
@@ -139,14 +138,12 @@ class TransformEmployeeAppointments(PandasPickleTask):
         mit_id: str,
         position_id: str,
         appt_begin_date: str,
-        appt_end_date: str,
     ) -> str:
         return md5_hash_from_values(
             [
                 mit_id,
                 position_id,
                 appt_begin_date,
-                appt_end_date,
             ]
         )
 
