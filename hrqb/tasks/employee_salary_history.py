@@ -50,7 +50,6 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
                 row.mit_id,
                 row.position_id,
                 row.appt_begin_date,
-                row.appt_end_date,
             ),
             axis=1,
         )
