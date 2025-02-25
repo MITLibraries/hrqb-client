@@ -24,31 +24,3 @@ class FullUpdate(HRQBPipelineTask):
         yield LoadEmployeeLeave(pipeline=self.pipeline_name)
         yield LoadPerformanceReviews(pipeline=self.pipeline_name)
         yield LoadEmployeeLeaveBalances(pipeline=self.pipeline_name)
-
-
-class UpdateLibHRData(HRQBPipelineTask):
-    """Pipeline to load Library HR employee appointment data from static CSV file.
-
-    This pipeline loads the table 'LibHR Employee Appointments', which contains
-    information known only by Library HR, that we cannot get from the data warehouse.
-
-    This Quickbase table is used by the 'Employee Appointments' table to fill in gaps from
-    warehouse data alone.  This pipeline is useful for initial loading and bulk changes,
-    but this table is primarily managed directly in Quickbase by HR staff.
-
-    This pipeline requires a 'csv_filepath' parameter is defined when running, e.g.:
-        pipenv run hrqb --verbose \
-        pipeline -p UpdateLibHRData \
-        --pipeline-parameters=csv_filepath=<PATH/TO/CSV> \
-        run
-    """
-
-    csv_filepath = luigi.Parameter()
-
-    def requires(self) -> Iterator[luigi.Task]:  # pragma: no cover
-        from hrqb.tasks.libhr_employee_appointments import LoadLibHREmployeeAppointments
-
-        yield LoadLibHREmployeeAppointments(
-            pipeline=self.pipeline_name,
-            csv_filepath=self.csv_filepath,
-        )
