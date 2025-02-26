@@ -9,11 +9,11 @@ from hrqb.base.task import (
 
 __all__ = [
     "HRQBLocalTarget",
-    "PandasPickleTarget",
-    "QuickbaseTableTarget",
     "HRQBPipelineTask",
     "HRQBTask",
+    "PandasPickleTarget",
     "PandasPickleTask",
-    "SQLQueryExtractTask",
+    "QuickbaseTableTarget",
     "QuickbaseUpsertTask",
+    "SQLQueryExtractTask",
 ]
