@@ -4,6 +4,7 @@ Query for Employee Leave Balances.
 CHANGELOG
     - 2024-09-26 Query created and added
     - 2024-09-26 Filter to employees with appointment end dates >= 2019
+    - 2025-02-05 Remove 2019-01-01 date cutoff entirely
 */
 
 select
@@ -24,5 +25,4 @@ and b.MIT_ID in (
     select
         a.MIT_ID
     from HR_APPOINTMENT_DETAIL a
-    where a.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
 )

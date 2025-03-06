@@ -11,6 +11,7 @@ CHANGELOG
     - 2024-05-13 Query created and added
     - 2024-06-03 Limit rows to appointments that end on or before 2019-01-01
     - 2024-06-05 Do not filter on benefits types
+    - 2025-02-05 Remove 2019-01-01 date cutoff entirely
 */
 
 select distinct
@@ -61,5 +62,4 @@ left join HR_POSITION p on p.HR_POSITION_KEY = a.HR_POSITION_KEY
 left join BENEFITS_ELIGIBILITY_CURRENT bec on
     bec.MIT_ID = a.MIT_ID
     and a.PERSONNEL_KEY = bec.PERSONNEL_KEY
-where a.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
 order by a.MIT_ID, a.APPT_BEGIN_DATE, a.APPT_END_DATE
