@@ -11,6 +11,9 @@ CHANGELOG
     - 2024-10-08
         - reworked CTEs to provide details about last library appointment only
         - move > 2019 filtering to HR_PERSON_EMPLOYEE in ordered_lib_appt MIT_IDs
+    - 2025-02-05 Remove 2019-01-01 date cutoff entirely
+    - 2025-02-05 Add CTE 'last_appt_termination_txn' to ensure only the last termination
+        reason is included to avoid duplicating employee rows
 */
 
 -- get all library appointments for employee, ordered
@@ -26,7 +29,6 @@ with ordered_lib_appt as (
             order by APPT_BEGIN_DATE desc, APPT_END_DATE desc
         ) as appt_row_num
     from HR_APPOINTMENT_DETAIL
-    where APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
 ),
 -- select only the last / current appointment for employee
 last_lib_appt as (
@@ -40,10 +42,18 @@ appt_termination_txns as (
         ad.MIT_ID,
         ad.HR_POSITION_KEY,
         at.HR_PERSONNEL_ACTION,
-        at.HR_ACTION_REASON as TERMINATION_REASON
+        at.HR_ACTION_REASON as TERMINATION_REASON,
+        row_number() over (
+            partition by MIT_ID
+            order by APPT_BEGIN_DATE desc, APPT_END_DATE desc
+        ) as termination_txn_row_num
     from HR_APPT_ACTION_DETAIL ad
     left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = ad.HR_PERSONNEL_ACTION_TYPE_KEY
     where at.HR_PERSONNEL_ACTION in ('Retirement','Termination')
+),
+last_appt_termination_txn as (
+    select * from appt_termination_txns
+    where termination_txn_row_num = 1
 ),
 -- combine CTEs above to get last / current appointment end date and termination reason
 last_lib_appt_details as (
@@ -52,7 +62,7 @@ last_lib_appt_details as (
     lla.APPT_END_DATE as LAST_LIB_APPT_END_DATE,
     att.TERMINATION_REASON
     from last_lib_appt lla
-    left join appt_termination_txns att on (
+    left join last_appt_termination_txn att on (
         att.MIT_ID = lla.MIT_ID
         and att.HR_POSITION_KEY = lla.HR_POSITION_KEY
     )

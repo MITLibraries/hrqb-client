@@ -10,6 +10,7 @@ CHANGELOG
     - 2024-06-03 Date limit to appointments ending after 2019-01-01
     - 2024-07-24 Added appointment begin/end date to help match appointments
     - 2024-09-18 Omit any HR_PERSONNEL_ACTION_TYPE rows where type is "Salary Supplement"
+    - 2025-02-05 Remove 2019-01-01 date cutoff entirely
 */
 
 select distinct
@@ -45,6 +46,5 @@ inner join HR_APPOINTMENT_DETAIL appt on appt.HR_APPT_KEY = a.HR_APPT_KEY
 left join HR_PERSONNEL_ACTION_TYPE at on at.HR_PERSONNEL_ACTION_TYPE_KEY = a.HR_PERSONNEL_ACTION_TYPE_KEY
 left join HR_JOB j on j.HR_JOB_KEY = a.HR_JOB_KEY
 left join HR_POSITION p on p.HR_POSITION_KEY = a.HR_POSITION_KEY
-where a.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
-and at.HR_PERSONNEL_ACTION not in ('Salary Supplement')
+where at.HR_PERSONNEL_ACTION not in ('Salary Supplement')
 order by a.MIT_ID, a.APPT_TX_BEGIN_DATE, a.APPT_TX_END_DATE

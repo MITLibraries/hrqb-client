@@ -4,6 +4,7 @@ Query for Employee Leaves.
 CHANGELOG
     - 2024-05-13 Query created and added
     - 2024-07-23 Added HR_POSITION.POSITION ID to select
+    - 2025-02-05 Remove 2019-01-01 date cutoff entirely
 */
 
 select distinct
@@ -25,8 +26,5 @@ from HR_ABSENCE_DETAIL abse
 inner join HR_APPOINTMENT_DETAIL appt on abse.MIT_ID = appt.MIT_ID
 inner join HR_ABSENCE_TYPE at on at.HR_ABSENCE_TYPE_KEY = abse.HR_ABSENCE_TYPE_KEY
 left join HR_POSITION p on p.HR_POSITION_KEY = appt.HR_POSITION_KEY
-where (
-    appt.APPT_END_DATE >= TO_DATE('2019-01-01', 'YYYY-MM-DD')
-    and abse.ABSENCE_DATE between appt.APPT_BEGIN_DATE and appt.APPT_END_DATE
-)
+where abse.ABSENCE_DATE between appt.APPT_BEGIN_DATE and appt.APPT_END_DATE
 order by appt.MIT_ID, abse.ABSENCE_DATE
