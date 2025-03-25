@@ -14,6 +14,7 @@ CHANGELOG
     - 2025-02-05 Remove 2019-01-01 date cutoff entirely
     - 2025-02-05 Add CTE 'last_appt_termination_txn' to ensure only the last termination
         reason is included to avoid duplicating employee rows
+    - 2025-03-25 Include Union Seniority Date and Gender in query
 */
 
 -- get all library appointments for employee, ordered
@@ -74,6 +75,7 @@ select
     e.NAME_KNOWN_BY as PREFERRED_NAME,
     e.DATE_OF_BIRTH,
     e.ORIGINAL_HIRE_DATE AS MIT_HIRE_DATE,
+    e.UNION_SENIORITY_DATE,
     e.CURRENT_EMPLOYMENT_DATE as MIT_LIB_HIRE_DATE,
     llad.LAST_LIB_APPT_END_DATE,
     e.HOME_ADDR_STREET1,
@@ -87,6 +89,7 @@ select
     e.OFFICE_PHONE,
     e.HOME_PHONE,
     e.ETHNIC_ORIGIN,
+    e.GENDER,
     e.EMERGENCY_CONTACT_NAME,
     e.EMERGENCY_CONTACT_RELATION,
     e.EMERGENCY_CONTACT_EMAIL,
