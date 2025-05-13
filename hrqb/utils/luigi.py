@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def run_task(task: luigi.Task) -> LuigiRunResult:
     """Function to run any luigi Task type via luigi runner."""
-    return luigi.build(
+    return luigi.build(  # type: ignore[no-untyped-call]
         [task],
         local_scheduler=True,
         detailed_summary=True,

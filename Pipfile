@@ -7,7 +7,7 @@ name = "pypi"
 click = "*"
 sentry-sdk = "*"
 oracledb = "*"
-luigi = "3.5.1"
+luigi = "*"
 pandas = "*"
 pandas-stubs = "*"
 attrs = "*"
@@ -30,9 +30,10 @@ freezegun = "*"
 sqlalchemy-stubs = "*"
 boto3 = "*"
 pytest-mock = "*"
+pip-audit = "*"
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"
 
 [scripts]
 hrqb = "python -c \"from hrqb.cli import main; main()\""
