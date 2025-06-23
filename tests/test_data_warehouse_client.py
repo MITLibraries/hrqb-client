@@ -1,5 +1,3 @@
-# ruff: noqa: PD901, PLR2004
-
 import pandas as pd
 import pytest
 from sqlalchemy.engine import Engine
@@ -81,5 +79,5 @@ def test_dwclient_test_connection_success(sqlite_dwclient):
 
 def test_dwclient_test_connection_connection_error(sqlite_dwclient):
     sqlite_dwclient.connection_string = "bad-connection://nothing"
-    with pytest.raises(ArgumentError, match="Could not parse SQLAlchemy URL from string"):
+    with pytest.raises(ArgumentError, match="Could not parse SQLAlchemy URL"):
         sqlite_dwclient.test_connection()

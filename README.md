@@ -60,6 +60,17 @@ Options:
 ```
 <br>
 
+### `test-connections`
+```text
+Usage: -c test-connections [OPTIONS]
+
+  Test connectivity with Data Warehouse and Quickbase.
+
+Options:
+  -h, --help  Show this message and exit.
+```
+<br>
+
 
 ### `pipeline` [Command Group]
 

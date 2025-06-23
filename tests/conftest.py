@@ -1,4 +1,4 @@
-# ruff: noqa: N802, N803, DTZ001, PLR2004, TRY003, EM101, SLF001
+# ruff: noqa: N802, N803, DTZ001, PLR2004, TRY003, EM101
 
 import datetime
 import json

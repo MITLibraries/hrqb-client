@@ -1,7 +1,5 @@
 """hrqb.utils.data_warehouse"""
 
-# ruff: noqa: PLR2004
-
 import logging
 
 import pandas as pd

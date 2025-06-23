@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004, PD901, SLF001, D205, D212
+# ruff: noqa: PLR2004, SLF001, D205, D212
 import datetime
 
 import pandas as pd

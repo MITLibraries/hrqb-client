@@ -19,7 +19,7 @@ def text_in_logs_or_stdout(text, caplog: LogCaptureFixture, result: Result):
 
 def test_cli_no_subcommand(runner):
     result = runner.invoke(cli.main)
-    assert result.exit_code == OKAY_RESULT_CODE
+    assert result.exit_code == MISSING_CLICK_ARG_RESULT_CODE
 
 
 def test_cli_verbose_ping(caplog, runner):

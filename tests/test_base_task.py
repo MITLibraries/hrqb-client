@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004, PD901, D205, D212, SLF001
+# ruff: noqa: PLR2004, D205, D212, SLF001
 
 import os
 from unittest import mock
