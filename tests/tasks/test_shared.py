@@ -1,6 +1,3 @@
-# ruff: noqa: PLR2004, PD901
-
-
 def test_task_extract_qb_employee_appointments_complete_has_required_fields(
     task_shared_extract_qb_employee_appointments_complete,
 ):

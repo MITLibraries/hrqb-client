@@ -1,4 +1,4 @@
-# ruff: noqa: DTZ005, PD901, DTZ001
+# ruff: noqa: DTZ005, DTZ001
 
 import datetime
 

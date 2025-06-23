@@ -1,8 +1,5 @@
 """hrqb.tasks.employee_leaves"""
 
-# ruff: noqa: S324
-
-
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 

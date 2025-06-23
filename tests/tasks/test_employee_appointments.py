@@ -1,5 +1,3 @@
-# ruff: noqa: PLR2004, PD901
-
 from hrqb.utils import md5_hash_from_values
 
 

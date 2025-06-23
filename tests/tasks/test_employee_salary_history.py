@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004, PD901, SLF001, E501
+# ruff: noqa: E501, PLR2004, SLF001
 
 import numpy as np
 import pandas as pd
