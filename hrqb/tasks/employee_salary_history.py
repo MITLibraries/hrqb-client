@@ -10,8 +10,10 @@ from hrqb.base.task import (
     QuickbaseUpsertTask,
     SQLQueryExtractTask,
 )
+from hrqb.exceptions import IntegrityCheckError
 from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
+from hrqb.utils.quickbase import QBClient
 
 PERCENT_DECIMAL_ACCURACY = 5
 
@@ -27,7 +29,12 @@ class ExtractDWEmployeeSalaryHistory(SQLQueryExtractTask):
 
 
 class TransformEmployeeSalaryHistory(PandasPickleTask):
+    table_name = luigi.Parameter("Employee Salary History")
     stage = luigi.Parameter("Transform")
+
+    @property
+    def merge_field(self) -> str | None:
+        return "Key"
 
     def requires(self) -> list[luigi.Task]:  # pragma: nocover
         from hrqb.tasks.shared import ExtractQBEmployeeAppointments
@@ -205,7 +212,42 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
                 f"{missing_appointment_count} rows are missing an Employee "
                 f"Appointment for task '{self.name}'"
             )
-            raise ValueError(message)
+            raise IntegrityCheckError(message)
+
+    @HRQBTask.integrity_check
+    def merge_field_values_are_unique(self, output_df: pd.DataFrame) -> None:
+        if not output_df[self.merge_field].is_unique:
+            message = f"Values for merge field {self.merge_field} are not unique."
+            raise IntegrityCheckError(message)
+
+    @HRQBTask.integrity_check
+    def qb_row_count_less_than_or_equal_transformed_row_count(
+        self, output_df: pd.DataFrame
+    ) -> None:
+        """Ensure Quickbase row count is less than or equal to transformed records.
+
+        Each run of this task retrieves ALL data from the data warehouse.  If Quickbase
+        has more rows then the data warehouse transformed data, this suggests a problem.
+
+        Args:
+            - output_df: the dataframe prepared by self.get_dataframe()
+        """
+        qbclient = QBClient()
+        qb_table_df = qbclient.get_table_as_df(
+            qbclient.get_table_id(self.table_name),
+            fields=["Record ID#"],
+        )
+
+        qb_count = len(qb_table_df)
+        transformed_count = len(output_df)
+
+        if qb_count > transformed_count:
+            message = (
+                f"For table '{self.table_name}', the Quickbase row count of {qb_count} "
+                f"exceeds this run's transformed row count of {transformed_count}. "
+                "This should not happen."
+            )
+            raise IntegrityCheckError(message)
 
 
 class LoadEmployeeSalaryHistory(QuickbaseUpsertTask):
