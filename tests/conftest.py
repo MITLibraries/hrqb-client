@@ -44,6 +44,7 @@ def _test_env(request, monkeypatch, targets_directory, data_warehouse_connection
         "DATA_WAREHOUSE_CONNECTION_STRING",
         data_warehouse_connection_string,
     )
+    monkeypatch.setenv("SKIP_TASK_INTEGRITY_CHECKS", "1")
 
 
 @pytest.fixture
