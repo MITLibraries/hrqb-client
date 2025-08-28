@@ -58,11 +58,9 @@ def test_task_transform_employee_salary_history_key_expected_from_input_data(
             emp_salary_row["MIT ID"],
             qb_emp_appt_row["Position ID"],
             qb_emp_appt_row["Begin Date"],
-            qb_emp_appt_row["End Date"],
             emp_salary_row["Related Salary Change Type"],
             emp_salary_row["Salary Change Reason"],
             emp_salary_row["Start Date"],
-            emp_salary_row["End Date"],
         ]
     )
 
