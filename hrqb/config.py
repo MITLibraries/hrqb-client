@@ -21,6 +21,7 @@ class Config:
         "DYLD_LIBRARY_PATH",
         "TARGETS_DIRECTORY",
         "LUIGI_NUM_WORKERS",
+        "SKIP_TASK_INTEGRITY_CHECKS",
     )
 
     def check_required_env_vars(self) -> None:
@@ -40,6 +41,13 @@ class Config:
     def targets_directory(self) -> str:
         directory = self.TARGETS_DIRECTORY or "output"
         return directory.removesuffix("/")
+
+    @property
+    def skip_task_integrity_checks(self) -> bool:
+        value = os.getenv("SKIP_TASK_INTEGRITY_CHECKS")
+        if value is None:
+            return False
+        return value.strip().lower() in {"1", "true", "t", "yes", "y"}
 
 
 def configure_logger(logger: logging.Logger, *, verbose: bool) -> str:

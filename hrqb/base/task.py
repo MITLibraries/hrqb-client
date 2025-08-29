@@ -121,6 +121,9 @@ class HRQBTask(luigi.Task):
         **kwargs,  # noqa: ANN003
     ) -> None:
         """Run all registered integrity check methods."""
+        if Config().skip_task_integrity_checks:
+            return
+
         for check_name in getattr(self, "_integrity_checks", []):
             if check_func := getattr(self, check_name, None):
                 try:

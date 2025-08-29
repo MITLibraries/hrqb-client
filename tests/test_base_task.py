@@ -346,6 +346,7 @@ def test_base_task_integrity_check_decorator_adds_check_names_to_registered_chec
 
 
 def test_base_task_run_integrity_checks_invokes_present_and_skips_absent_checks(
+    monkeypatch,
     pandas_task_with_integrity_checks,
 ):
     """
@@ -353,6 +354,7 @@ def test_base_task_run_integrity_checks_invokes_present_and_skips_absent_checks(
     not have.  The task's defined integrity checks are invoked, while this other one is
     quietly skipped.
     """
+    monkeypatch.delenv("SKIP_TASK_INTEGRITY_CHECKS", raising=False)
     pandas_task_with_integrity_checks._integrity_checks.add("i_do_not_have")
 
     check_one = mock.MagicMock()
@@ -368,8 +370,9 @@ def test_base_task_run_integrity_checks_invokes_present_and_skips_absent_checks(
 
 
 def test_quickbase_upsert_task_integrity_checks_get_upsert_results(
-    upsert_task_with_integrity_checks, mocked_qb_api_upsert
+    monkeypatch, upsert_task_with_integrity_checks, mocked_qb_api_upsert
 ):
+    monkeypatch.delenv("SKIP_TASK_INTEGRITY_CHECKS", raising=False)
     check_one = mock.MagicMock()
     check_two = mock.MagicMock()
     upsert_task_with_integrity_checks.expecting_three_processed_records = check_one
@@ -383,8 +386,9 @@ def test_quickbase_upsert_task_integrity_checks_get_upsert_results(
 
 
 def test_failed_integrity_checks_raise_custom_exception(
-    pandas_task_with_integrity_checks, upsert_task_with_integrity_checks
+    monkeypatch, pandas_task_with_integrity_checks, upsert_task_with_integrity_checks
 ):
+    monkeypatch.delenv("SKIP_TASK_INTEGRITY_CHECKS", raising=False)
     # pandas task
     with pytest.raises(
         IntegrityCheckError, match="Expecting a 'letter' column in dataframe"
@@ -405,8 +409,10 @@ def test_task_without_integrity_checks_run_without_error(
 
 
 def test_upsert_task_duplicate_merge_field_values_raises_error(
+    monkeypatch,
     upsert_task_with_duplicate_merge_field_values,
 ):
+    monkeypatch.delenv("SKIP_TASK_INTEGRITY_CHECKS", raising=False)
     with pytest.raises(
         ValueError,
         match="Merge field 'Key' found to have duplicate values for task "

@@ -45,6 +45,7 @@ DATA_WAREHOUSE_CONNECTION_STRING=# Data Warehouse SQLAlchemy connection string, 
 DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH # used when developing on arm64 architecture + Rosetta2 environment
 TARGETS_DIRECTORY=# Location to store Task Targets, overriding application default of "output"
 LUIGI_NUM_WORKERS=# Number of processes for luigi to run tasks in parallel.  If not set, defaults to 1 in application.  
+SKIP_TASK_INTEGRITY_CHECKS=# If set to a truth value like "1", "true", "yes", or "on", any integrity tests defined for a task will be skipped
 ```
 
 ## CLI Commands
