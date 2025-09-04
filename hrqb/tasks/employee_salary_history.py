@@ -82,8 +82,6 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
                     row.mit_id,
                     row.position_id,
                     str(row.appointment_begin_date),
-                    str(row.hr_personnel_action),
-                    str(row.hr_action_reason),
                     str(row.start_date),
                 ]
             ),
