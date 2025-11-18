@@ -376,6 +376,15 @@ def mocked_qb_api_delete_records(qbclient, mocked_delete_payload, global_request
 
 
 @pytest.fixture
+def mocked_qb_api_get_pay_grade_records(qbclient, global_requests_mock, mocked_table_id):
+    url = f"{qbclient.api_base}/tables/{mocked_table_id}?appId={qbclient.app_id}"
+    with open("tests/fixtures/qb_api_responses/payGradeRecords.json") as f:
+        api_response = json.load(f)
+    global_requests_mock.get(url, json=api_response)
+    return api_response
+
+
+@pytest.fixture
 def qbclient_with_mocked_table_fields(qbclient, mocked_query_table_fields):
     with mock.patch.object(type(qbclient), "get_table_fields") as mocked_table_fields:
         mocked_table_fields.return_value = mocked_query_table_fields
@@ -535,6 +544,25 @@ def mocked_qbclient_departments_df():
 
 
 @pytest.fixture
+def mocked_qbclient_pay_grades_df():
+    with mock.patch(
+        "hrqb.utils.quickbase.QBClient.get_table_as_df"
+    ) as mocked_get_table_df, mock.patch(
+        "hrqb.utils.quickbase.QBClient.get_table_id"
+    ) as _mocked_table_id:
+        mocked_get_table_df.return_value = pd.DataFrame(
+            [
+                {
+                    "Pay Grade": "5",
+                    "Record ID#": 1,
+                    "Active Pay Grade": "Active",
+                },
+            ]
+        )
+        yield mocked_get_table_df
+
+
+@pytest.fixture
 def task_extract_qb_departments_target(
     task_extract_qb_departments, mocked_qbclient_departments_df
 ):
@@ -621,7 +649,9 @@ def task_transform_employee_types_complete(
 
 @pytest.fixture
 def task_transform_job_titles_complete(
-    all_tasks_pipeline_name, task_extract_dw_employee_appointment_complete
+    all_tasks_pipeline_name,
+    task_extract_dw_employee_appointment_complete,
+    mocked_qbclient_pay_grades_df,
 ):
     from hrqb.tasks.job_titles import TransformUniqueJobTitles
 

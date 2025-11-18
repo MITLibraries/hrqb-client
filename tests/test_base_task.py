@@ -182,7 +182,7 @@ def test_base_sql_task_missing_sql_query_or_sql_file_error(pipeline_name):
     with pytest.raises(
         AttributeError,
         match=(
-            "Property 'sql_file' must be set or property 'sql_query' overridden to "
+            r"Property 'sql_file' must be set or property 'sql_query' overridden to "
             "explicitly return a SQL string."
         ),
     ):
