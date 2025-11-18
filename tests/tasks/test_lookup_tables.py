@@ -7,7 +7,7 @@ def test_task_transform_employee_types_required_fields(
 
 
 def test_task_transform_job_titles_required_fields(task_transform_job_titles_complete):
-    assert {"Job Title", "Pay Grade"} == set(
+    assert {"Job Title", "Related Pay Grade"} == set(
         task_transform_job_titles_complete.get_dataframe().columns
     )
 
