@@ -12,6 +12,7 @@ CHANGELOG
     - 2024-06-03 Limit rows to appointments that end on or before 2019-01-01
     - 2024-06-05 Do not filter on benefits types
     - 2025-02-05 Remove 2019-01-01 date cutoff entirely
+    - 2026-04-02 Add "Spon Res-Tech" to list of union names we want to ignore and set as NULL in Quickbase
 */
 
 select distinct
@@ -45,6 +46,7 @@ select distinct
         when p.PERSONNEL_SUBAREA = 'Service AFSCME' then 'AFSCME'
         when p.PERSONNEL_SUBAREA = 'Inst Off-NonFac' then null
         when p.PERSONNEL_SUBAREA = 'Spon Res-Adm' then null
+        when p.PERSONNEL_SUBAREA = 'Spon Res-Tech' then null
         else p.PERSONNEL_SUBAREA
     end as UNION_NAME,
     case
