@@ -52,7 +52,7 @@ def convert_dataframe_columns_to_dates(
         return None
 
     for column in columns:
-        df[column] = df[column].apply(lambda x: convert_to_date(x))
+        df[column] = df[column].apply(lambda x: convert_to_date(x))  # noqa: PLW0108
     return df
 
 
@@ -79,6 +79,8 @@ def convert_oracle_bools_to_qb_bools(
 
 
 def us_state_abbreviation_to_name(abbreviation: str | None) -> str | None:
+    if not abbreviation or not isinstance(abbreviation, str):
+        return None
     try:
         state = getattr(us.states, abbreviation or "None")
     except AttributeError:

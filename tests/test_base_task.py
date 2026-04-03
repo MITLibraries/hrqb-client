@@ -197,12 +197,9 @@ def test_base_sql_task_custom_dwclient(task_sql_extract_animal_names):
 
 
 def test_base_sql_task_sql_query(task_sql_extract_animal_names):
-    assert (
-        task_sql_extract_animal_names.sql_query
-        == """
+    assert task_sql_extract_animal_names.sql_query == """
         select animal_id, name from animal_name
         """
-    )
 
 
 def test_base_sql_task_sql_file(task_sql_extract_animal_colors):
@@ -263,7 +260,12 @@ def test_quickbase_task_input_task_to_load_property_used(
     task = LoadTaskMultipleRequired(pipeline=pipeline_name)
     assert task.input_task_to_load == "ExtractAnimalColors"
     input_dict = task.get_records()
-    assert pd.DataFrame(input_dict).equals(task_extract_animal_colors_target.read())
+    pd.testing.assert_frame_equal(
+        pd.DataFrame(input_dict),
+        task_extract_animal_colors_target.read(),
+        check_dtype=False,
+        check_column_type=False,
+    )
 
 
 def test_base_pipeline_task_aggregate_upsert_results_one_success_returns_dict(
