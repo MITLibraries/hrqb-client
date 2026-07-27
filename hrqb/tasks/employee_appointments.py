@@ -1,5 +1,7 @@
 """hrqb.tasks.employee_appointments"""
 
+# ruff: noqa: ERA001
+
 import luigi  # type: ignore[import-untyped]
 import pandas as pd
 
@@ -84,6 +86,41 @@ class TransformEmployeeAppointments(PandasPickleTask):
                 appt_begin_date,
             ]
         )
+
+    # NOTE: this integrity check has been reinstead, but temporarily disabled.  It turns
+    #   out that data warehouse data will sometimes omit non-library appointments for
+    #   employees that have left the library, but where it did provide them when the
+    #   employee was still with the library.  The net effect are appointments in Quickbase
+    #   that are meaningful, but no longer in the data warehouse.  The decision is to
+    #   keep this check relaxed (turned off), but may revisit in the future.
+    # @HRQBTask.integrity_check
+    # def qb_row_count_less_than_or_equal_transformed_row_count(
+    #     self, output_df: pd.DataFrame
+    # ) -> None:
+    #     """Ensure Quickbase row count is less than or equal to transformed records.
+    #
+    #     Each run of this task retrieves ALL data from the data warehouse.  If Quickbase
+    #     has more rows then the data warehouse transformed data, this suggests a problem.
+    #
+    #     Args:
+    #         - output_df: the dataframe prepared by self.get_dataframe()
+    #     """
+    #     qbclient = QBClient()
+    #     qb_table_df = qbclient.get_table_as_df(
+    #         qbclient.get_table_id(self.table_name),
+    #         fields=["Record ID#"],
+    #     )
+    #
+    #     qb_count = len(qb_table_df)
+    #     transformed_count = len(output_df)
+    #
+    #     if qb_count > transformed_count:
+    #         message = (
+    #             f"For table '{self.table_name}', the Quickbase row count of {qb_count} "
+    #             f"exceeds this run's transformed row count of {transformed_count}. "
+    #             "This should not happen."
+    #         )
+    #         raise IntegrityCheckError(message)
 
 
 class LoadEmployeeAppointments(QuickbaseUpsertTask):

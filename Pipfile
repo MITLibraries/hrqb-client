@@ -15,7 +15,7 @@ requests = "*"
 types-requests = "*"
 sqlalchemy = "*"
 us = "*"
-cryptography = "*"
+cryptography = "==48.*"
 
 [dev-packages]
 black = "*"
