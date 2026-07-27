@@ -1,5 +1,7 @@
 """hrqb.tasks.employee_salary_history"""
 
+# ruff: noqa: ERA001
+
 import luigi  # type: ignore[import-untyped]
 import numpy as np
 import pandas as pd
@@ -13,7 +15,6 @@ from hrqb.base.task import (
 from hrqb.exceptions import IntegrityCheckError
 from hrqb.tasks.employee_appointments import TransformEmployeeAppointments
 from hrqb.utils import md5_hash_from_values, normalize_dataframe_dates
-from hrqb.utils.quickbase import QBClient
 
 PERCENT_DECIMAL_ACCURACY = 5
 
@@ -216,34 +217,39 @@ class TransformEmployeeSalaryHistory(PandasPickleTask):
             message = f"Values for merge field {self.merge_field} are not unique."
             raise IntegrityCheckError(message)
 
-    @HRQBTask.integrity_check
-    def qb_row_count_less_than_or_equal_transformed_row_count(
-        self, output_df: pd.DataFrame
-    ) -> None:
-        """Ensure Quickbase row count is less than or equal to transformed records.
-
-        Each run of this task retrieves ALL data from the data warehouse.  If Quickbase
-        has more rows then the data warehouse transformed data, this suggests a problem.
-
-        Args:
-            - output_df: the dataframe prepared by self.get_dataframe()
-        """
-        qbclient = QBClient()
-        qb_table_df = qbclient.get_table_as_df(
-            qbclient.get_table_id(self.table_name),
-            fields=["Record ID#"],
-        )
-
-        qb_count = len(qb_table_df)
-        transformed_count = len(output_df)
-
-        if qb_count > transformed_count:
-            message = (
-                f"For table '{self.table_name}', the Quickbase row count of {qb_count} "
-                f"exceeds this run's transformed row count of {transformed_count}. "
-                "This should not happen."
-            )
-            raise IntegrityCheckError(message)
+    # NOTE: this integrity check has been temporarily disabled.  Sometimes the data
+    #   warehoude will emit events like "End/Return Leave of Absence" that are useful to
+    #   capture, but are later omitted from data warehouse data output, for reasons not
+    #   known at this time.  We have elected to relax this integrity check to keep those
+    #   rows in Quickbase, but may revisit at a later time.
+    # @HRQBTask.integrity_check
+    # def qb_row_count_less_than_or_equal_transformed_row_count(
+    #     self, output_df: pd.DataFrame
+    # ) -> None:
+    #     """Ensure Quickbase row count is less than or equal to transformed records.
+    #
+    #     Each run of this task retrieves ALL data from the data warehouse.  If Quickbase
+    #     has more rows then the data warehouse transformed data, this suggests a problem.
+    #
+    #     Args:
+    #         - output_df: the dataframe prepared by self.get_dataframe()
+    #     """
+    #     qbclient = QBClient()
+    #     qb_table_df = qbclient.get_table_as_df(
+    #         qbclient.get_table_id(self.table_name),
+    #         fields=["Record ID#"],
+    #     )
+    #
+    #     qb_count = len(qb_table_df)
+    #     transformed_count = len(output_df)
+    #
+    #     if qb_count > transformed_count:
+    #         message = (
+    #             f"For table '{self.table_name}', the Quickbase row count of {qb_count} "
+    #             f"exceeds this run's transformed row count of {transformed_count}. "
+    #             "This should not happen."
+    #         )
+    #         raise IntegrityCheckError(message)
 
 
 class LoadEmployeeSalaryHistory(QuickbaseUpsertTask):
