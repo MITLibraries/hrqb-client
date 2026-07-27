@@ -26,7 +26,7 @@ def test_pipeline_pipeline_tasks_iter_gives_all_parent_tasks(task_pipeline_anima
     assert pipeline_tasks[4].__class__ == ExtractAnimalNames  # Extract Task #2
 
 
-def test_pipeline_complete_when_all_parent_tasks_complete(
+def test_pipeline_complete_when_all_parent_tasks_complete(  # noqa: PLR0917
     task_extract_animal_names,
     task_extract_animal_colors,
     task_transform_animals,
